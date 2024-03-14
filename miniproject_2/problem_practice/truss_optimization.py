@@ -5,11 +5,11 @@ Created on Mar. 01, 2024
 
 import matplotlib.pyplot as plt
 
-from grid import Grid
+from grid import TrussGrid
 from finite_element_model import TrussFEM
 from design_optimization import TopologyOptimization, VolumeConstraint
 
-def plot_optimization(grid: Grid, thickness):
+def plot_optimization(grid: TrussGrid, thickness):
     fig, ax = plt.subplots()
     ax = grid.plot(
         ax,
@@ -36,7 +36,7 @@ def plot_optimization(grid: Grid, thickness):
     ax.legend()
     fig.tight_layout()
     
-def plot_deformation(grid: Grid, thickness, grid_displacement):
+def plot_deformation(grid: TrussGrid, thickness, grid_displacement):
     fig, ax = plt.subplots()
     ax = grid.plot(
         ax,
@@ -65,7 +65,7 @@ def plot_deformation(grid: Grid, thickness, grid_displacement):
 
 def main():
    # Setup grid
-    grid = Grid(
+    grid = TrussGrid(
         number_of_links=[6, 6],
         length_of_sides=[100, 100],
         youngs_modulus=150_000,
@@ -124,9 +124,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-

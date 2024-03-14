@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 import numpy as np
 
-from grid import Grid
+from grid import Grid, TrussGrid
 
 class FEM(ABC):
     def __init__(self, grid: Grid):
@@ -20,7 +20,7 @@ class FEM(ABC):
 class TrussFEM(FEM):
     def __init__(
         self, 
-        grid: Grid, 
+        grid: TrussGrid, 
         boundary_constraints: list, 
         external_loads: list, 
     ):

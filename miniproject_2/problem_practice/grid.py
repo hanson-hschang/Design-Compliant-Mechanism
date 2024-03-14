@@ -3,9 +3,10 @@ Created on Mar. 01, 2024
 @author: Heng-Sheng Hanson Chang
 """
 
+from abc import ABC, abstractmethod
 import numpy as np
 
-class Grid:
+class Grid(ABC):
 
     LOCAL_STIFFNESS_MATRIX = np.array(
         [[ 1, -1],
@@ -29,31 +30,14 @@ class Grid:
                 self.nodes.append([i*delta_x, j*delta_y])
         self.nodes = np.array(self.nodes)
         
-        self.links = []
-        self.length_of_links = []
-        self.angle_of_links = []
-        for i in range(len(self.nodes)):
-            slope_list = []
-            for j in range(i+1, len(self.nodes)):
-                angle = np.arctan2(
-                    self.nodes[j][1]-self.nodes[i][1], 
-                    self.nodes[j][0]-self.nodes[i][0]
-                )
-                if not (angle in slope_list):
-                    slope_list.append(angle)                
-                    self.links.append([i, j])
-                    self.length_of_links.append(
-                        np.linalg.norm(
-                            np.array(self.nodes[i]) - np.array(self.nodes[j])
-                        )
-                    )
-                    self.angle_of_links.append(angle)
-        self.links = np.array(self.links)
-        self.length_of_links = np.array(self.length_of_links)
-        self.angle_of_links = np.array(self.angle_of_links)
+        self.links, self.length_of_links, self.angle_of_links = self.deploy_links()
         self.youngs_modulus = self.compute(youngs_modulus)
         self.in_plane_thickness = self.compute(in_plane_thickness)
         self.out_of_plane_thickness = self.compute(out_of_plane_thickness)
+
+    @abstractmethod
+    def deploy_links(self,):
+        pass
 
     def compute(self, value):
         if isinstance(value, (int, float)):
@@ -98,3 +82,26 @@ class Grid:
                 **kwargs
             )
         return ax
+
+class TrussGrid(Grid):
+    def deploy_links(self):
+        links = []
+        length_of_links = []
+        angle_of_links = []
+        for i in range(len(self.nodes)):
+            slope_list = []
+            for j in range(i+1, len(self.nodes)):
+                angle = np.arctan2(
+                    self.nodes[j][1]-self.nodes[i][1], 
+                    self.nodes[j][0]-self.nodes[i][0]
+                )
+                if not (angle in slope_list):
+                    slope_list.append(angle)                
+                    links.append([i, j])
+                    length_of_links.append(
+                        np.linalg.norm(
+                            np.array(self.nodes[i]) - np.array(self.nodes[j])
+                        )
+                    )
+                    angle_of_links.append(angle)
+        return np.array(links), np.array(length_of_links), np.array(angle_of_links)
