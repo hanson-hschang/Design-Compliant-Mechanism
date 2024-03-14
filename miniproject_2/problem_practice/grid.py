@@ -76,7 +76,7 @@ class Grid(ABC):
         self.links = np.array(kept_links)
         self.update_link_related_parameters(kept_links_list)
 
-    def update_link_related_parameters(self, parameter, kept_links_list):
+    def update_link_related_parameters(self, kept_links_list):
         self.length_of_links = np.array([
             self.length_of_links[index]
             for index in range(len(self.length_of_links)) if index in kept_links_list
