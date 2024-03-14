@@ -54,20 +54,20 @@ class Grid(ABC):
         y_bounds[0] = -np.inf if type(y_bounds[0]) == type(None) else y_bounds[0]
         y_bounds[1] = np.inf if type(y_bounds[1]) == type(None) else y_bounds[1]
         
-        removed_nodes_index = []
-        kept_nodes_index = []        
+        removed_nodes_list = []
+        kept_nodes_list = []        
         for index in list(self.nodes.keys()):
             position_x, position_y = self.nodes[index]
             if x_bounds[0] <= position_x <= x_bounds[1] and y_bounds[0] <= position_y <= y_bounds[1]:
-                removed_nodes_index.append(index)
+                removed_nodes_list.append(index)
                 del self.nodes[index]
             else:
-                kept_nodes_index.append(index)
-                self.nodes[len(kept_nodes_index)-1] = self.nodes[index]
+                kept_nodes_list.append(index)
+                self.nodes[len(kept_nodes_list)-1] = self.nodes[index]
 
         self.links = np.array([
-            [kept_nodes_index.index(link[0]), kept_nodes_index.index(link[1])]
-            for link in self.links if len(np.intersect1d(link, removed_nodes_index))==0
+            [kept_nodes_list.index(link[0]), kept_nodes_list.index(link[1])]
+            for link in self.links if len(np.intersect1d(link, removed_nodes_list))==0
         ])
 
     def compute_gradient_of_strain_energy(self, grid_displacement, in_plane_thickness=None):
