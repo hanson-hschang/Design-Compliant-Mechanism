@@ -58,12 +58,12 @@ class Grid(ABC):
         kept_nodes_list = []        
         for index in list(self.nodes.keys()):
             position_x, position_y = self.nodes[index]
+            del self.nodes[index]
             if x_bounds[0] <= position_x <= x_bounds[1] and y_bounds[0] <= position_y <= y_bounds[1]:
                 removed_nodes_list.append(index)
-                del self.nodes[index]
             else:
                 kept_nodes_list.append(index)
-                self.nodes[len(kept_nodes_list)-1] = self.nodes[index]
+                self.nodes[len(kept_nodes_list)-1] = [position_x, position_y]
 
         kept_links_list = []
         kept_links = []
