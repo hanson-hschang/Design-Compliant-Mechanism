@@ -65,9 +65,22 @@ class Grid(ABC):
                 kept_nodes_list.append(index)
                 self.nodes[len(kept_nodes_list)-1] = self.nodes[index]
 
-        self.links = np.array([
-            [kept_nodes_list.index(link[0]), kept_nodes_list.index(link[1])]
-            for link in self.links if len(np.intersect1d(link, removed_nodes_list))==0
+        kept_links_list = []
+        kept_links = []
+        for i, link in enumerate(self.links):
+            if len(np.intersect1d(link, removed_nodes_list))==0:
+                kept_links_list.append(i)
+                kept_links.append(
+                    [kept_nodes_list.index(link[0]), kept_nodes_list.index(link[1])]
+                )
+        self.links = np.array(kept_links)
+        self.length_of_links = np.array([
+            self.length_of_links[index]
+            for index in range(len(self.length_of_links)) if index in kept_links_list
+        ])
+        self.angle_of_links = np.array([
+            self.angle_of_links[index]
+            for index in range(len(self.angle_of_links)) if index in kept_links_list
         ])
 
     def compute_gradient_of_strain_energy(self, grid_displacement, in_plane_thickness=None):
