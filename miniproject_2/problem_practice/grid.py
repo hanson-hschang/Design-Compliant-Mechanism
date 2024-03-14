@@ -45,6 +45,30 @@ class Grid(ABC):
         if isinstance(value, (int, float)):
             return np.ones(len(self.links)) * value
         return np.array(value)
+    
+    def remove_nodes(self, x_bounds=None, y_bounds=None):
+        x_bounds = [-np.inf, np.inf] if type(x_bounds) == type(None) else x_bounds
+        y_bounds = [-np.inf, np.inf] if type(y_bounds) == type(None) else y_bounds
+        x_bounds[0] = -np.inf if type(x_bounds[0]) == type(None) else x_bounds[0]
+        x_bounds[1] = np.inf if type(x_bounds[1]) == type(None) else x_bounds[1]
+        y_bounds[0] = -np.inf if type(y_bounds[0]) == type(None) else y_bounds[0]
+        y_bounds[1] = np.inf if type(y_bounds[1]) == type(None) else y_bounds[1]
+        
+        removed_nodes_index = []
+        kept_nodes_index = []        
+        for index in list(self.nodes.keys()):
+            position_x, position_y = self.nodes[index]
+            if x_bounds[0] <= position_x <= x_bounds[1] and y_bounds[0] <= position_y <= y_bounds[1]:
+                removed_nodes_index.append(index)
+                del self.nodes[index]
+            else:
+                kept_nodes_index.append(index)
+                self.nodes[len(kept_nodes_index)-1] = self.nodes[index]
+
+        self.links = np.array([
+            [kept_nodes_index.index(link[0]), kept_nodes_index.index(link[1])]
+            for link in self.links if len(np.intersect1d(link, removed_nodes_index))==0
+        ])
 
     def compute_gradient_of_strain_energy(self, grid_displacement, in_plane_thickness=None):
         in_plane_thickness = self.in_plane_thickness if type(in_plane_thickness) == type(None) else in_plane_thickness
