@@ -21,12 +21,12 @@ class Grid(ABC):
         in_plane_thickness, 
         out_of_plane_thickness,
     ):
-    
+        self.number_of_links = np.array(number_of_links)
         self.nodes = []
-        delta_x = length_of_sides[0] / number_of_links[0]
-        delta_y = length_of_sides[1] / number_of_links[1]
-        for j in range(number_of_links[1]+1):
-            for i in range(number_of_links[0]+1):
+        delta_x = length_of_sides[0] / self.number_of_links[0]
+        delta_y = length_of_sides[1] / self.number_of_links[1]
+        for j in range(self.number_of_links[1]+1):
+            for i in range(self.number_of_links[0]+1):
                 self.nodes.append([i*delta_x, j*delta_y])
         self.nodes = np.array(self.nodes)
         
