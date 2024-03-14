@@ -21,12 +21,12 @@ class Grid(ABC):
         in_plane_thickness, 
         out_of_plane_thickness,
     ):
-        self.number_of_links = np.array(number_of_links)
+        self.number_of_nodes = np.array(number_of_links) + 1
         self.nodes = []
-        delta_x = length_of_sides[0] / self.number_of_links[0]
-        delta_y = length_of_sides[1] / self.number_of_links[1]
-        for j in range(self.number_of_links[1]+1):
-            for i in range(self.number_of_links[0]+1):
+        delta_x = length_of_sides[0] / number_of_links[0]
+        delta_y = length_of_sides[1] / number_of_links[1]
+        for j in range(self.number_of_nodes[1]):
+            for i in range(self.number_of_nodes[0]):
                 self.nodes.append([i*delta_x, j*delta_y])
         self.nodes = np.array(self.nodes)
         
@@ -72,7 +72,7 @@ class Grid(ABC):
         grid_displacement = np.zeros(2*len(self.nodes)) if type(grid_displacement) == type(None) else grid_displacement
         in_plane_thickness = self.in_plane_thickness if type(in_plane_thickness) == type(None) else in_plane_thickness
         in_plane_thickness_max = max(in_plane_thickness) / kwargs.pop('linewidth', 3)
-        
+
         for link, thickness in zip(self.links, in_plane_thickness):
             i, j = link[0], link[1]
             ax.plot(
@@ -112,18 +112,18 @@ class BeamGrid(Grid):
         length_of_links = []
         angle_of_links = []
         for i in range(len(self.nodes)):
-            if i % (self.number_of_links[0]+1) == 0:
+            if i % self.number_of_nodes[0] == 0:
                 # i at the left boundary
                 grid_list = np.array([
-                    1, self.number_of_links[0]+1, self.number_of_links[0]+2
+                    1, self.number_of_nodes[0], self.number_of_nodes[0]+1
                 ])
-            elif i % (self.number_of_links[0]+1) == self.number_of_links[0]:
+            elif i % self.number_of_nodes[0] == self.number_of_nodes[0]-1:
                 # i at the right boundary
-                grid_list = np.array([self.number_of_links[0], self.number_of_links[0]+1,])
+                grid_list = np.array([self.number_of_nodes[0]-1, self.number_of_nodes[0]])
             else:
                 # i not at boundaries
                 grid_list = np.array([
-                    1, self.number_of_links[0], self.number_of_links[0]+1, self.number_of_links[0]+2
+                    1, self.number_of_nodes[0]-1, self.number_of_nodes[0], self.number_of_nodes[0]+1
                 ])
             grid_list += i
             grid_list = grid_list[np.where(grid_list<len(self.nodes))]
