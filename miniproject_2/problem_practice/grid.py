@@ -7,8 +7,42 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 import numpy as np
 
-class Grid(ABC):
+class NodeRange:
+    def __init__(self, condition, **kwargs):
+        self.condition = condition
+        if self.condition == 'vertical_segement':
+            self.x_range = [kwargs['x_value'], kwargs['x_value']]
+            self.y_range = kwargs['y_range']
+        if self.condition == 'horizontal_segement':
+            self.x_range = kwargs['x_range']
+            self.y_range = [kwargs['y_value'], kwargs['y_value']]
+        if self.condition == 'point':
+            self.x_value = kwargs['x_value']
+            self.y_value = kwargs['y_value']
 
+    def get_indicies(self, nodes: defaultdict):
+        nodes_indicies = []
+        if 'segement' in self.condition:
+            for index in list(nodes.keys()):
+                position_x, position_y = nodes[index]
+                if self.x_range[0] <= position_x <= self.x_range[1] and self.y_range[0] <= position_y <= self.y_range[1]:
+                    nodes_indicies.append(index)
+        if 'point' in self.condition:
+            point_position = np.array([self.x_value, self.y_value])
+            minimum_distance = np.inf
+            minimum_distance_index = None
+            for index in list(nodes.keys()):
+                distance = np.linalg.norm(
+                    np.array(nodes[index]) - 
+                    point_position
+                )
+                if distance < minimum_distance:
+                    minimum_distance = distance
+                    minimum_distance_index = index
+            nodes_indicies.append(minimum_distance_index)
+        return nodes_indicies
+
+class Grid(ABC):
     LOCAL_STIFFNESS_MATRIX = np.array(
         [[ 1, -1],
          [-1,  1]]
@@ -97,7 +131,7 @@ class Grid(ABC):
             self.out_of_plane_thickness[index]
             for index in range(len(self.out_of_plane_thickness)) if index in kept_links_list
         ])
-
+        
     def compute_gradient_of_strain_energy(self, grid_displacement, in_plane_thickness=None):
         in_plane_thickness = self.in_plane_thickness if type(in_plane_thickness) == type(None) else in_plane_thickness
         cross_sectional_area = in_plane_thickness * self.out_of_plane_thickness
@@ -121,6 +155,19 @@ class Grid(ABC):
                 )
             )
         return gradient_of_strain_energy
+    
+    def add_conditions(
+        self, 
+        condition_list: list, 
+        condition: str, 
+        value: float, 
+        node_range: NodeRange
+        ):
+        nodes_indicies = node_range.get_indicies(self.nodes)
+        for index in nodes_indicies:
+            condition_list.append(
+                [index, condition, value]
+            )
     
     def plot(self, ax, grid_displacement=None, in_plane_thickness=None, **kwargs):
         grid_displacement = np.zeros(2*len(self.nodes)) if type(grid_displacement) == type(None) else grid_displacement
