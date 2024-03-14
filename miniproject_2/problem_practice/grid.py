@@ -105,3 +105,37 @@ class TrussGrid(Grid):
                     )
                     angle_of_links.append(angle)
         return np.array(links), np.array(length_of_links), np.array(angle_of_links)
+
+class BeamGrid(Grid):
+    def deploy_links(self):
+        links = []
+        length_of_links = []
+        angle_of_links = []
+        for i in range(len(self.nodes)):
+            if i % (self.number_of_links[0]+1) == 0:
+                # i at the left boundary
+                grid_list = np.array([
+                    1, self.number_of_links[0]+1, self.number_of_links[0]+2
+                ])
+            elif i % (self.number_of_links[0]+1) == self.number_of_links[0]:
+                # i at the right boundary
+                grid_list = np.array([self.number_of_links[0], self.number_of_links[0]+1,])
+            else:
+                # i not at boundaries
+                grid_list = np.array([
+                    1, self.number_of_links[0], self.number_of_links[0]+1, self.number_of_links[0]+2
+                ])
+            grid_list += i
+            grid_list = grid_list[np.where(grid_list<len(self.nodes))]
+            for j in grid_list:
+                links.append([i, j])
+                length = np.linalg.norm(
+                    np.array(self.nodes[i]) - np.array(self.nodes[j])
+                )
+                angle = np.arctan2(
+                    self.nodes[j][1]-self.nodes[i][1], 
+                    self.nodes[j][0]-self.nodes[i][0]
+                )
+                length_of_links.append(length)
+                angle_of_links.append(angle)
+        return np.array(links), np.array(length_of_links), np.array(angle_of_links)
