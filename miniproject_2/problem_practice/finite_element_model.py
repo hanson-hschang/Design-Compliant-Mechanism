@@ -91,6 +91,7 @@ class FEM(ABC):
     def compute_stiffness_matrix(self, in_plane_thickness):
 
         self.stiffness_matrix = self.grid.compute_stiffness_matrix(in_plane_thickness)
+        # TODO: Incorporate OutputDisplacement matrix
 
         # Imposing displacement boundary constraints
         for index, boundary_constraint_conditions in self.sorted_boundary_constraints.items():
