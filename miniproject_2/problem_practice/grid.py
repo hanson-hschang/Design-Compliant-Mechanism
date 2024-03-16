@@ -8,7 +8,7 @@ from collections import defaultdict
 import numpy as np
 
 class NodeRange:
-    def __init__(self, condition, **kwargs):
+    def __init__(self, condition: str, **kwargs):
         self.condition = condition
         if self.condition == 'vertical_segement':
             self.x_range = [kwargs['x_value'], kwargs['x_value']]
@@ -56,13 +56,13 @@ class Grid(ABC):
     DIRECTION_DICT = {}
 
     def __init__(
-        self, 
-        number_of_links, 
-        length_of_sides, 
-        youngs_modulus,
-        in_plane_thickness, 
-        out_of_plane_thickness,
-        degree_of_freedom=0,
+        self,
+        number_of_links: list[int], 
+        length_of_sides: list[float], 
+        youngs_modulus: float | np.ndarray,
+        in_plane_thickness: float | np.ndarray, 
+        out_of_plane_thickness: float | np.ndarray,
+        degree_of_freedom: int = 0,
     ):
         self.number_of_nodes_at_each_side = np.array(number_of_links) + 1
         self.nodes = defaultdict(list)
@@ -82,7 +82,7 @@ class Grid(ABC):
         self.degree_of_freedom = degree_of_freedom
 
         self.stiffness_matrix = np.diag(
-            np.inf * np.ones(degree_of_freedom * number_of_nodes)
+            np.inf * np.ones(self.degree_of_freedom * number_of_nodes)
         )
 
     def compute(self, value):
@@ -200,12 +200,12 @@ class TrussGrid(Grid):
     }
 
     def __init__(
-        self, 
-        number_of_links, 
-        length_of_sides, 
-        youngs_modulus,
-        in_plane_thickness, 
-        out_of_plane_thickness,
+        self,
+        number_of_links: list[int], 
+        length_of_sides: list[float], 
+        youngs_modulus: float | np.ndarray,
+        in_plane_thickness: float | np.ndarray, 
+        out_of_plane_thickness: float | np.ndarray,
     ):
         super().__init__(
             number_of_links, 
@@ -305,12 +305,12 @@ class BeamGrid(Grid):
     }
 
     def __init__(
-        self, 
-        number_of_links, 
-        length_of_sides, 
-        youngs_modulus,
-        in_plane_thickness, 
-        out_of_plane_thickness,
+        self,
+        number_of_links: list[int], 
+        length_of_sides: list[float], 
+        youngs_modulus: float | np.ndarray,
+        in_plane_thickness: float | np.ndarray, 
+        out_of_plane_thickness: float | np.ndarray,
     ):
         super().__init__(
             number_of_links, 

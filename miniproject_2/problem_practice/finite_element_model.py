@@ -3,7 +3,6 @@ Created on Mar. 09, 2024
 @author: Heng-Sheng Hanson Chang
 """
 
-from typing import Optional
 from collections import defaultdict
 import numpy as np
 
@@ -32,7 +31,7 @@ class FEM:
         grid: Grid, 
         boundary_constraints: list,
         external_loads: list,
-        output_displacement: Optional[OutputDisplacement] = None
+        output_displacement: OutputDisplacement | None = None,
     ):
         self.grid = grid
         number_of_nodes = len(self.grid.nodes)
