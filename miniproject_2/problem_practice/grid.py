@@ -29,18 +29,26 @@ class NodeRange:
                     nodes_indicies.append(index)
         if 'point' in self.condition:
             point_position = np.array([self.x_value, self.y_value])
-            minimum_distance = np.inf
-            minimum_distance_index = None
-            for index in list(nodes.keys()):
-                distance = np.linalg.norm(
-                    np.array(nodes[index]) - 
-                    point_position
-                )
-                if distance < minimum_distance:
-                    minimum_distance = distance
-                    minimum_distance_index = index
+            minimum_distance_index = NodeRange.find_nearest_node(
+                nodes=nodes,
+                position=point_position
+            )
             nodes_indicies.append(minimum_distance_index)
         return nodes_indicies
+    
+    @staticmethod
+    def find_nearest_node(nodes: defaultdict, position: np.array):
+        minimum_distance = np.inf
+        minimum_distance_index = None
+        for index in list(nodes.keys()):
+            distance = np.linalg.norm(
+                np.array(nodes[index]) - 
+                position
+            )
+            if distance < minimum_distance:
+                minimum_distance = distance
+                minimum_distance_index = index
+        return minimum_distance_index
 
 class Grid(ABC):
     LOCAL_STIFFNESS_MATRIX = np.array(
