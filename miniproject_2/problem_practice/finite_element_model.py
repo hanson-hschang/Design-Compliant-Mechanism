@@ -127,3 +127,4 @@ class FEM:
     def deform(self, in_plane_thickness=None):
         self.compute_stiffness_matrix(in_plane_thickness)
         self.compute_grid_displacement()
+        return self.grid_displacement
