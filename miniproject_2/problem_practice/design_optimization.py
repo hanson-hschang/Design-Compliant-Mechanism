@@ -104,11 +104,13 @@ class TopologyOptimization:
         for i in range(self.number_of_maximum_iterations):
 
             # Deform the grid based on the current thickness setting
-            grid_displacement = self.fem.deform(thickness)
+            self.fem.deform(
+                in_plane_thickness=thickness
+            )
 
             # Compute gradient of strain energy based on current thickness setting
             gradient_of_strain_energy = self.fem.grid.compute_gradient_of_strain_energy(
-                grid_displacement,
+                grid_displacement=self.fem.grid_displacement,
                 in_plane_thickness=thickness
             )
 

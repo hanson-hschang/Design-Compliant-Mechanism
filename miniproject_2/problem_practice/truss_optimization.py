@@ -6,7 +6,7 @@ Created on Mar. 01, 2024
 import matplotlib.pyplot as plt
 
 from grid import TrussGrid
-from finite_element_model import TrussFEM
+from finite_element_model import FEM
 from design_optimization import TopologyOptimization, VolumeConstraint
 
 def plot_optimization(grid: TrussGrid, thickness):
@@ -90,7 +90,7 @@ def main():
 
     # Set up model
     model = TopologyOptimization(
-        fem=TrussFEM(
+        fem=FEM(
             grid, 
             boundary_constraints, 
             external_loads
