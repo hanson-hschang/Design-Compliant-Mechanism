@@ -69,11 +69,11 @@ class Grid(ABC):
         self.nodes = defaultdict(list)
         delta_x = length_of_sides[0] / number_of_links[0]
         delta_y = length_of_sides[1] / number_of_links[1]
-        count = 0
+        number_of_nodes = 0
         for j in range(self.number_of_nodes_at_each_side[1]):
             for i in range(self.number_of_nodes_at_each_side[0]):
-                self.nodes[count] = [i*delta_x, j*delta_y]
-                count += 1
+                self.nodes[number_of_nodes] = [i*delta_x, j*delta_y]
+                number_of_nodes += 1
         
         self.links, self.length_of_links, self.angle_of_links = self.deploy_links()
         self.youngs_modulus = self.compute(youngs_modulus)
@@ -81,6 +81,15 @@ class Grid(ABC):
         self.out_of_plane_thickness = self.compute(out_of_plane_thickness)
 
         self.degree_of_freedom = degree_of_freedom
+
+        self.stiffness_matrix = np.zeros(
+            (degree_of_freedom*number_of_nodes, 
+             degree_of_freedom*number_of_nodes)
+        )
+
+    @abstractmethod
+    def compute_stiffness_matrix(self, in_plane_thickness=None):
+        pass
 
     @abstractmethod
     def deploy_links(self,):
@@ -212,6 +221,30 @@ class TrussGrid(Grid):
             out_of_plane_thickness,
             degree_of_freedom=2,
         )
+    
+    def compute_stiffness_matrix(self, in_plane_thickness=None):
+        in_plane_thickness = self.in_plane_thickness if type(in_plane_thickness) == type(None) else in_plane_thickness
+        cross_sectional_area = in_plane_thickness * self.out_of_plane_thickness
+        self.stiffness_matrix *= 0
+        for n, link in enumerate(self.links):
+            i, j = link[0], link[1]
+            angle = self.angle_of_links[n]
+            local_stiffness = (
+                self.youngs_modulus[n] * cross_sectional_area[n] / self.length_of_links[n]
+            )
+            transformation_matrix = np.array(
+                [[np.cos(angle), np.sin(angle), 0, 0],
+                 [0, 0, np.cos(angle), np.sin(angle)]]
+            )
+            local_stiffness_matrix = local_stiffness * (
+                transformation_matrix.T @ (
+                    Grid.LOCAL_STIFFNESS_MATRIX @ transformation_matrix
+                )
+            )
+            
+            indices = [2*i, 2*i+1, 2*j, 2*j+1]
+            self.stiffness_matrix[np.ix_(indices, indices)] += local_stiffness_matrix
+        return self.stiffness_matrix.copy()
 
     def deploy_links(self):
         links = []
