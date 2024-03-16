@@ -10,18 +10,6 @@ import numpy as np
 
 from grid import NodeRange, Grid
 
-DOF_DICT = {
-    'position_x': 0,
-    'position_y': 1,
-    'angle_theta': 2,
-}
-
-DIRECTION_DICT = {
-    'direction_x': 0,
-    'direction_y': 1,
-    'direction_theta': 2,
-}
-
 class OutputDisplacement:
     def __init__(self, position: list, condition: str, spring_constant: float):
         self.position = np.array(position)
@@ -34,7 +22,7 @@ class OutputDisplacement:
         self.stiffness_matrix = np.zeros(
             (total_degree_of_freedom, total_degree_of_freedom)
         )
-        index = grid.degree_of_freedom * self.node_index + DIRECTION_DICT[self.condition]
+        index = grid.degree_of_freedom * self.node_index + grid.DIRECTION_DICT[self.condition]
         self.stiffness_matrix[index, index] = self.spring_constant        
 
 class FEM(ABC):
@@ -55,7 +43,7 @@ class FEM(ABC):
         for external_load in external_loads:
             index, condition, value = external_load
             self.vectorized_external_loads[
-                degree_of_freedom*index+DIRECTION_DICT[condition]
+                degree_of_freedom*index+self.grid.DIRECTION_DICT[condition]
             ] = value
 
         boundary_constraints = sorted(
@@ -73,7 +61,7 @@ class FEM(ABC):
             removed_entries_list = []
             for condition in conditions:
                 removed_entries_list.append(
-                    degree_of_freedom*index+DOF_DICT[condition]
+                    degree_of_freedom*index+self.grid.DOF_DICT[condition]
                 )
             self.vectorized_external_loads = np.delete(
                 self.vectorized_external_loads,
@@ -99,11 +87,35 @@ class FEM(ABC):
             removed_entries_list = []
             for condition in conditions:
                 removed_entries_list.append(
-                    self.grid.degree_of_freedom*index+DOF_DICT[condition]
+                    self.grid.degree_of_freedom*index+self.grid.DOF_DICT[condition]
                 )
             self.stiffness_matrix = np.delete(self.stiffness_matrix, removed_entries_list, axis=0)
             self.stiffness_matrix = np.delete(self.stiffness_matrix, removed_entries_list, axis=1)
 
+    def incorporate_boundary_constraints(self, grid_displacement):
+        degree_of_freedom = self.grid.degree_of_freedom
+        complete_grid_displacement = np.zeros(
+            degree_of_freedom * len(self.grid.nodes)
+        )
+        counter = 0
+        boundary_constraints_indicies = list(self.sorted_boundary_constraints.keys())
+        for i in range(len(self.grid.nodes)):
+            if boundary_constraints_indicies != [] and i == boundary_constraints_indicies[-1]:
+                conditions = set(self.sorted_boundary_constraints[i].keys())
+                node_displacement = np.zeros(degree_of_freedom)
+                for condition, index in self.grid.DOF_DICT.items():
+                    if condition in conditions:
+                        node_displacement[index] = self.sorted_boundary_constraints[i][condition]
+                    else:
+                        node_displacement[index] = grid_displacement[counter]
+                        counter += 1
+                boundary_constraints_indicies.pop()
+            else:
+                node_displacement = grid_displacement[counter:counter+degree_of_freedom]
+                counter += degree_of_freedom
+            complete_grid_displacement[degree_of_freedom*i: degree_of_freedom*(i+1)] = node_displacement
+        return complete_grid_displacement
+    
     @abstractmethod
     def deform(self,):
         pass
@@ -121,35 +133,6 @@ class TrussFEM(FEM):
         return self.incorporate_boundary_constraints(
             grid_displacement=np.linalg.inv(self.stiffness_matrix) @ self.vectorized_external_loads
         )
-    
-    def incorporate_boundary_constraints(self, grid_displacement):
-        complete_grid_displacement = np.zeros(2*len(self.grid.nodes))
-        counter = 0
-        boundary_constraints_indicies = list(self.sorted_boundary_constraints.keys())
-        for i in range(len(self.grid.nodes)):
-            if boundary_constraints_indicies != [] and i == boundary_constraints_indicies[-1]:
-                conditions = set(self.sorted_boundary_constraints[i].keys())
-                if {'position_x', 'position_y'}.issubset(conditions):
-                    direction_x_displacement = self.sorted_boundary_constraints[i]['position_x']
-                    direction_y_displacement = self.sorted_boundary_constraints[i]['position_y']
-                elif 'position_x' in conditions:
-                    direction_x_displacement = self.sorted_boundary_constraints[i]['position_x']
-                    direction_y_displacement = grid_displacement[counter]
-                    counter += 1
-                elif 'position_y' in conditions:
-                    direction_x_displacement = grid_displacement[counter]
-                    direction_y_displacement = self.sorted_boundary_constraints[i]['position_y']
-                    counter += 1
-                boundary_constraints_indicies.pop()
-            else:
-                direction_x_displacement = grid_displacement[counter]
-                direction_y_displacement = grid_displacement[counter+1]
-                counter += 2
-            complete_grid_displacement[2*i] = direction_x_displacement
-            complete_grid_displacement[2*i+1] = direction_y_displacement
-            
-        return complete_grid_displacement
-
 
 class BeamFEM(FEM):
     def deform(self, in_plane_thickness=None):

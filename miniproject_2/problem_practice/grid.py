@@ -56,6 +56,10 @@ class Grid(ABC):
          [-1,  1]]
     )
 
+    DOF_DICT = {}
+
+    DIRECTION_DICT = {}
+
     def __init__(
         self, 
         number_of_links, 
@@ -205,6 +209,17 @@ class Grid(ABC):
         return ax
 
 class TrussGrid(Grid):
+
+    DOF_DICT = {
+        'position_x': 0,
+        'position_y': 1,
+    }
+
+    DIRECTION_DICT = {
+        'direction_x': 0,
+        'direction_y': 1,
+    }
+
     def __init__(
         self, 
         number_of_links, 
@@ -269,6 +284,19 @@ class TrussGrid(Grid):
         return np.array(links), np.array(length_of_links), np.array(angle_of_links)
 
 class BeamGrid(Grid):
+
+    DOF_DICT = {
+        'position_x': 0,
+        'position_y': 1,
+        'angle_theta': 2,
+    }
+
+    DIRECTION_DICT = {
+        'direction_x': 0,
+        'direction_y': 1,
+        'direction_theta': 2,
+    }
+
     def __init__(
         self, 
         number_of_links, 
