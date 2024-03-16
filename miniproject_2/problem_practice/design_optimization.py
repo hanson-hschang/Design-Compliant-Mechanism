@@ -29,15 +29,19 @@ class VolumeConstraint:
         self.lagrange_multiplier_tol = lagrange_multiplier_setting.get('tol', 1e-4)
 
     @staticmethod
-    def compute_total_volume(length_of_links, in_plane_thickness, out_of_plane_thickness):
+    def compute_total_volume(
+        length_of_links: np.ndarray, 
+        in_plane_thickness: np.ndarray, 
+        out_of_plane_thickness: np.ndarray,
+    ):
         return np.sum(length_of_links * in_plane_thickness * out_of_plane_thickness)
     
     def satisfy(
         self, 
-        thickness, 
-        gradient_of_strain_energy, 
-        length_of_links, 
-        out_of_plane_thickness
+        thickness: np.ndarray,  
+        gradient_of_strain_energy: np.ndarray, 
+        length_of_links: np.ndarray,  
+        out_of_plane_thickness: np.ndarray, 
     ):
         lagrange_multiplier_upper = self.lagrange_multiplier_max
         lagrange_multiplier_lower = self.lagrange_multiplier_min
@@ -85,6 +89,18 @@ class TopologyOptimization:
         self.volume_constraint = volume_constraint
         self.number_of_maximum_iterations = number_of_maximum_iterations
         self.tol = kwargs.get('tol', 1e-4)
+
+    def update_thickness(
+        self, 
+        thickness: np.ndarray, 
+        gradient_of_strain_energy: np.ndarray
+    ):
+        return self.volume_constraint.satisfy(
+            thickness, 
+            gradient_of_strain_energy, 
+            self.fem.grid.length_of_links, 
+            self.fem.grid.out_of_plane_thickness
+        )
 
     def optimize(self, **kwargs):
         plot_flag = kwargs.get('plot_flag', False)
@@ -148,10 +164,3 @@ class TopologyOptimization:
 
         return thickness
     
-    def update_thickness(self, thickness, gradient_of_strain_energy):
-        return self.volume_constraint.satisfy(
-            thickness, 
-            gradient_of_strain_energy, 
-            self.fem.grid.length_of_links, 
-            self.fem.grid.out_of_plane_thickness
-        )

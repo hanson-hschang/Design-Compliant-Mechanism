@@ -10,19 +10,21 @@ import numpy as np
 from grid import NodeRange, Grid
 
 class OutputDisplacement:
-    def __init__(self, position: list, condition: str, spring_constant: float):
+    def __init__(self, grid: Grid, position: list, condition: str, spring_constant: float):
         self.position = np.array(position)
         self.condition = condition
         self.spring_constant = spring_constant
 
-    def update_property(self, grid: Grid):
         self.node_index = NodeRange.find_nearest_node(grid.nodes, self.position)
         total_degree_of_freedom = grid.degree_of_freedom * len(grid.nodes)
         self.stiffness_matrix = np.zeros(
             (total_degree_of_freedom, total_degree_of_freedom)
         )
         index = grid.degree_of_freedom * self.node_index + grid.DIRECTION_DICT[self.condition]
-        self.stiffness_matrix[index, index] = self.spring_constant        
+        self.stiffness_matrix[index, index] = self.spring_constant
+    
+    def add_output_displacement_matrix(self, stiffness_matrix: np.ndarray):
+        return stiffness_matrix + self.stiffness_matrix
 
 class FEM:
     def __init__(
@@ -76,12 +78,15 @@ class FEM:
         
         self.output_displacement = output_displacement
         if type(self.output_displacement) == OutputDisplacement:
-            self.output_displacement.update_property(self.grid)
+            self.add_output_displacement_stiffness_matrix = self.output_displacement.add_output_displacement_matrix
+        else:
+            self.add_output_displacement_stiffness_matrix = lambda stiffness_matrix: stiffness_matrix 
     
-    def compute_stiffness_matrix(self, in_plane_thickness):
+    def compute_stiffness_matrix(self, in_plane_thickness=None):
 
-        self.stiffness_matrix = self.grid.compute_stiffness_matrix(in_plane_thickness)
-        # TODO: Incorporate OutputDisplacement matrix
+        self.stiffness_matrix = self.add_output_displacement_stiffness_matrix(
+            stiffness_matrix=self.grid.compute_stiffness_matrix(in_plane_thickness)
+        )
 
         # Imposing displacement boundary constraints
         for index, boundary_constraint_conditions in self.sorted_boundary_constraints.items():
@@ -94,7 +99,7 @@ class FEM:
             self.stiffness_matrix = np.delete(self.stiffness_matrix, removed_entries_list, axis=0)
             self.stiffness_matrix = np.delete(self.stiffness_matrix, removed_entries_list, axis=1)
 
-    def incorporate_boundary_constraints(self, grid_displacement):
+    def incorporate_boundary_constraints(self, grid_displacement: np.ndarray):
         degree_of_freedom = self.grid.degree_of_freedom
         counter = 0
         boundary_constraints_indicies = list(self.sorted_boundary_constraints.keys())

@@ -87,8 +87,8 @@ class Grid(ABC):
         self.degree_of_freedom = degree_of_freedom
 
         self.stiffness_matrix = np.zeros(
-            (degree_of_freedom*number_of_nodes, 
-             degree_of_freedom*number_of_nodes)
+            (degree_of_freedom * number_of_nodes, 
+             degree_of_freedom * number_of_nodes)
         )
 
     @abstractmethod
@@ -134,7 +134,7 @@ class Grid(ABC):
         self.links = np.array(kept_links)
         self.update_link_related_parameters(kept_links_list)
 
-    def update_link_related_parameters(self, kept_links_list):
+    def update_link_related_parameters(self, kept_links_list: list):
         self.length_of_links = np.array([
             self.length_of_links[index]
             for index in range(len(self.length_of_links)) if index in kept_links_list
@@ -156,7 +156,11 @@ class Grid(ABC):
             for index in range(len(self.out_of_plane_thickness)) if index in kept_links_list
         ])
         
-    def compute_gradient_of_strain_energy(self, grid_displacement, in_plane_thickness=None):
+    def compute_gradient_of_strain_energy(
+        self,
+        grid_displacement: np.ndarray,
+        in_plane_thickness=None
+    ):
         in_plane_thickness = self.in_plane_thickness if type(in_plane_thickness) == type(None) else in_plane_thickness
         cross_sectional_area = in_plane_thickness * self.out_of_plane_thickness
 
@@ -182,11 +186,11 @@ class Grid(ABC):
     
     def add_conditions(
         self, 
-        condition_list: list, 
+        condition_list: list,
+        node_range: NodeRange, 
         condition: str, 
         value: float, 
-        node_range: NodeRange
-        ):
+    ):
         nodes_indicies = node_range.get_indicies(self.nodes)
         for index in nodes_indicies:
             condition_list.append(
