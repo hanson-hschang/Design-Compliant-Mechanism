@@ -63,6 +63,7 @@ class Grid(ABC):
         youngs_modulus,
         in_plane_thickness, 
         out_of_plane_thickness,
+        degree_of_freedom=0,
     ):
         self.number_of_nodes_at_each_side = np.array(number_of_links) + 1
         self.nodes = defaultdict(list)
@@ -78,6 +79,8 @@ class Grid(ABC):
         self.youngs_modulus = self.compute(youngs_modulus)
         self.in_plane_thickness = self.compute(in_plane_thickness)
         self.out_of_plane_thickness = self.compute(out_of_plane_thickness)
+
+        self.degree_of_freedom = degree_of_freedom
 
     @abstractmethod
     def deploy_links(self,):
@@ -193,6 +196,23 @@ class Grid(ABC):
         return ax
 
 class TrussGrid(Grid):
+    def __init__(
+        self, 
+        number_of_links, 
+        length_of_sides, 
+        youngs_modulus,
+        in_plane_thickness, 
+        out_of_plane_thickness,
+    ):
+        super().__init__(
+            number_of_links, 
+            length_of_sides, 
+            youngs_modulus,
+            in_plane_thickness, 
+            out_of_plane_thickness,
+            degree_of_freedom=2,
+        )
+
     def deploy_links(self):
         links = []
         length_of_links = []
@@ -216,6 +236,23 @@ class TrussGrid(Grid):
         return np.array(links), np.array(length_of_links), np.array(angle_of_links)
 
 class BeamGrid(Grid):
+    def __init__(
+        self, 
+        number_of_links, 
+        length_of_sides, 
+        youngs_modulus,
+        in_plane_thickness, 
+        out_of_plane_thickness,
+    ):
+        super().__init__(
+            number_of_links, 
+            length_of_sides, 
+            youngs_modulus,
+            in_plane_thickness, 
+            out_of_plane_thickness,
+            degree_of_freedom=3,
+        )
+
     def deploy_links(self):
         links = []
         length_of_links = []

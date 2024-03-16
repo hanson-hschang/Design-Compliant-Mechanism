@@ -3,38 +3,55 @@ Created on Mar. 09, 2024
 @author: Heng-Sheng Hanson Chang
 """
 
+from typing import Optional
 from abc import ABC, abstractmethod
 from collections import defaultdict
 import numpy as np
 
-from grid import Grid, TrussGrid
+from grid import NodeRange, Grid
+
+DOF_DICT = {
+    'position_x': 0,
+    'position_y': 1,
+    'angle_theta': 2,
+}
+
+DIRECTION_DICT = {
+    'direction_x': 0,
+    'direction_y': 1,
+    'direction_theta': 2,
+}
+
+class OutputDisplacement:
+    def __init__(self, position: list, condition: str, spring_constant: float):
+        self.position = np.array(position)
+        self.condition = condition
+        self.spring_constant = spring_constant
+
+    def update_property(self, grid: Grid):
+        self.node_index = NodeRange.find_nearest_node(grid.nodes, self.position)
+        total_degree_of_freedom = grid.degree_of_freedom * len(grid.nodes)
+        self.stiffness_matrix = np.zeros(
+            (total_degree_of_freedom, total_degree_of_freedom)
+        )
+        index = grid.degree_of_freedom * self.node_index + DIRECTION_DICT[self.condition]
+        self.stiffness_matrix[index, index] = self.spring_constant        
 
 class FEM(ABC):
-    def __init__(self, grid: Grid):
-        self.grid = grid
-    
-    @abstractmethod
-    def deform(self,):
-        pass
-
-class TrussFEM(FEM):
     def __init__(
         self, 
-        grid: TrussGrid, 
-        boundary_constraints: list, 
-        external_loads: list, 
+        grid: Grid, 
+        boundary_constraints: list,
+        external_loads: list,
+        output_displacement: Optional[OutputDisplacement] = None
     ):
-        super().__init__(grid)
+        self.grid = grid
         number_of_nodes = len(self.grid.nodes)
-        self.stiffness_matrix = np.zeros((2*number_of_nodes, 2*number_of_nodes))
-
-        self.vectorized_external_loads = np.zeros(2*number_of_nodes)
-        for external_load in external_loads:
-            index, condition, value = external_load
-            if condition == 'direction_x':
-                self.vectorized_external_loads[2*index] = value
-            elif condition == 'direction_y':
-                self.vectorized_external_loads[2*index+1] = value
+        degree_of_freedom = grid.degree_of_freedom
+        self.stiffness_matrix = np.zeros(
+            (degree_of_freedom*number_of_nodes, 
+             degree_of_freedom*number_of_nodes)
+        )
 
         boundary_constraints = sorted(
             boundary_constraints, 
@@ -48,22 +65,34 @@ class TrussFEM(FEM):
             self.sorted_boundary_constraints[index][condition] = value
         for index, boundary_constraint_conditions in self.sorted_boundary_constraints.items():
             conditions = set(boundary_constraint_conditions.keys())
-            if {'position_x', 'position_y'}.issubset(conditions):
-                self.vectorized_external_loads = np.delete(
-                    self.vectorized_external_loads,
-                    [2*index, 2*index+1]
+            removed_entries_list = []
+            for condition in conditions:
+                removed_entries_list.append(
+                    degree_of_freedom*index+DOF_DICT[condition]
                 )
-            elif 'position_x' in conditions:
-                self.vectorized_external_loads = np.delete(
-                    self.vectorized_external_loads,
-                    2*index
-                )
-            elif 'position_y' in conditions:
-                self.vectorized_external_loads = np.delete(
-                    self.vectorized_external_loads,
-                    2*index+1
-                )
+            self.vectorized_external_loads = np.delete(
+                self.vectorized_external_loads,
+                removed_entries_list
+            )
 
+        self.vectorized_external_loads = np.zeros(
+            degree_of_freedom*number_of_nodes
+        )
+        for external_load in external_loads:
+            index, condition, value = external_load
+            self.vectorized_external_loads[
+                degree_of_freedom*index+DIRECTION_DICT[condition]
+            ] = value
+        
+        self.output_displacement = output_displacement
+        if type(self.output_displacement) == OutputDisplacement:
+            self.output_displacement.update_property(self.grid)
+    
+    @abstractmethod
+    def deform(self,):
+        pass
+
+class TrussFEM(FEM):
     def compute_stiffness_matrix(self, in_plane_thickness):
 
         cross_sectional_area = in_plane_thickness * self.grid.out_of_plane_thickness
@@ -147,3 +176,9 @@ class TrussFEM(FEM):
             complete_grid_displacement[2*i+1] = direction_y_displacement
             
         return complete_grid_displacement
+
+
+class BeamFEM(FEM):
+    def deform(self, in_plane_thickness=None):
+            
+        return None
