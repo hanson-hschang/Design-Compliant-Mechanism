@@ -39,7 +39,7 @@ class VolumeConstraint:
     def satisfy(
         self, 
         thickness: np.ndarray,  
-        gradient_of_strain_energy: np.ndarray, 
+        gradient: np.ndarray, 
         length_of_links: np.ndarray,  
         out_of_plane_thickness: np.ndarray, 
     ):
@@ -51,7 +51,7 @@ class VolumeConstraint:
             
             # Compute the new thickness
             new_thickness = thickness * (
-                - self.update_ratio * gradient_of_strain_energy / 
+                - self.update_ratio * gradient / 
                 (lagrange_multiplier * length_of_links)
             ) ** self.update_power
             
@@ -93,11 +93,11 @@ class TopologyOptimization:
     def update_thickness(
         self, 
         thickness: np.ndarray, 
-        gradient_of_strain_energy: np.ndarray
+        gradient: np.ndarray
     ):
         return self.volume_constraint.satisfy(
             thickness, 
-            gradient_of_strain_energy, 
+            gradient, 
             self.fem.grid.length_of_links, 
             self.fem.grid.out_of_plane_thickness
         )
@@ -130,6 +130,8 @@ class TopologyOptimization:
                 in_plane_thickness=thickness
             )
 
+            # TODO: gradient is different when there is input and output involved 
+            # (i.e. self.fem.output_displacement is not None)
             # Update the thickness based on the gradient for the next iteration
             thickness = self.update_thickness(thickness, gradient_of_strain_energy)
 
