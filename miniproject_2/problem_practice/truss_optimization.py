@@ -109,7 +109,7 @@ def main():
                 max=1e5, min=0, tol=1e-4
             )
         ),
-        number_of_maximum_iterations=20,
+        number_of_maximum_iterations=100,
     )
 
     # Compute optimization and deformation 

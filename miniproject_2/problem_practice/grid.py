@@ -90,6 +90,36 @@ class Grid(ABC):
             return np.ones(len(self.links)) * value
         return np.array(value)
     
+    def check_in_plane_thickness_value(
+        self, 
+        in_plane_thickness: np.ndarray | None = None,
+    ):
+        return self.in_plane_thickness if type(in_plane_thickness) == type(None) else in_plane_thickness
+
+    def compute_cross_sectional_area(
+        self, 
+        in_plane_thickness: np.ndarray,
+    ):
+        return in_plane_thickness * self.out_of_plane_thickness
+    
+    def compute_second_moment_of_cross_sectional_area(
+        self, 
+        in_plane_thickness: np.ndarray
+    ):
+        return self.out_of_plane_thickness * (in_plane_thickness**3) / 12.
+
+    def compute_gradient_of_cross_sectional_area(
+        self, 
+        in_plane_thickness: np.ndarray,
+    ):
+        return self.out_of_plane_thickness
+    
+    def compute_gradient_of_second_moment_of_cross_sectional_area(
+        self, 
+        in_plane_thickness: np.ndarray
+    ):
+        return self.out_of_plane_thickness * (in_plane_thickness**2) / 4.
+    
     @abstractmethod
     def deploy_links(self,):
         pass
@@ -215,6 +245,14 @@ class TrussGrid(Grid):
             out_of_plane_thickness,
             degree_of_freedom=2,
         )
+        self.transformation_matrix = np.zeros((len(self.links), 2, 4))
+        for n, angle in enumerate(self.angle_of_links):
+            cos_angle = np.cos(angle)
+            sin_angle = np.sin(angle)
+            self.transformation_matrix[n, :, :] = np.array(
+                [[ cos_angle, sin_angle,         0,         0],
+                 [         0,         0, cos_angle, sin_angle]]
+            )
     
     def deploy_links(self):
         links = []
@@ -237,52 +275,56 @@ class TrussGrid(Grid):
                     )
                     angle_of_links.append(angle)
         return np.array(links), np.array(length_of_links), np.array(angle_of_links)
-    
-    def compute_stiffness_matrix(self, in_plane_thickness=None):
-        in_plane_thickness = self.in_plane_thickness if type(in_plane_thickness) == type(None) else in_plane_thickness
-        cross_sectional_area = in_plane_thickness * self.out_of_plane_thickness
+
+    def compute_stiffness_matrix(
+        self, 
+        in_plane_thickness: np.ndarray | None = None,
+    ):
+        in_plane_thickness = self.check_in_plane_thickness_value(in_plane_thickness)
+        cross_sectional_area = self.compute_cross_sectional_area(in_plane_thickness)
         self.stiffness_matrix[:, :] = 0
         for n, link in enumerate(self.links):
             i, j = link[0], link[1]
-            angle = self.angle_of_links[n]
             local_stiffness = (
                 self.youngs_modulus[n] * cross_sectional_area[n] / self.length_of_links[n]
             )
-            transformation_matrix = np.array(
-                [[np.cos(angle), np.sin(angle), 0, 0],
-                 [0, 0, np.cos(angle), np.sin(angle)]]
+            local_stiffness_matrix = np.array(
+                [[  local_stiffness, -local_stiffness],
+                 [ -local_stiffness,  local_stiffness]]
             )
-            local_stiffness_matrix = local_stiffness * (
-                transformation_matrix.T @ (
-                    TrussGrid.LOCAL_STIFFNESS_MATRIX @ transformation_matrix
+            indices = [2*i, 2*i+1, 2*j, 2*j+1]
+            self.stiffness_matrix[np.ix_(indices, indices)] += (
+                self.transformation_matrix[n].T @ (
+                    local_stiffness_matrix @ self.transformation_matrix[n]
                 )
             )
-            
-            indices = [2*i, 2*i+1, 2*j, 2*j+1]
-            self.stiffness_matrix[np.ix_(indices, indices)] += local_stiffness_matrix
         return self.stiffness_matrix.copy()
 
     def compute_gradient_of_strain_energy(
         self,
         grid_displacement: np.ndarray,
-        in_plane_thickness=None
+        in_plane_thickness: np.ndarray | None = None,
     ):
-        in_plane_thickness = self.in_plane_thickness if type(in_plane_thickness) == type(None) else in_plane_thickness
-        cross_sectional_area = in_plane_thickness * self.out_of_plane_thickness
+        in_plane_thickness = self.check_in_plane_thickness_value(in_plane_thickness)
+        gradient_of_cross_sectional_area = (
+            self.compute_gradient_of_cross_sectional_area(
+                in_plane_thickness
+            )
+        )
 
         gradient_of_strain_energy = np.zeros(len(self.links))
         
         for n, link in enumerate(self.links):
             i, j = link[0], link[1]
             angle = self.angle_of_links[n]
-            local_stiffness = (
-                self.youngs_modulus[n] * cross_sectional_area[n] / self.length_of_links[n]
+            gradient_of_local_stiffness = (
+                self.youngs_modulus[n] * gradient_of_cross_sectional_area[n] / self.length_of_links[n]
             )
             local_displacement = np.array(
                 [grid_displacement[2*i]*np.cos(angle)+grid_displacement[2*i+1]*np.sin(angle),
                  grid_displacement[2*j]*np.cos(angle)+grid_displacement[2*j+1]*np.sin(angle)]
             )
-            gradient_of_strain_energy[n] = -0.5 * local_stiffness * (
+            gradient_of_strain_energy[n] = -0.5 * gradient_of_local_stiffness * (
                 local_displacement @ (
                     TrussGrid.LOCAL_STIFFNESS_MATRIX @ 
                     local_displacement
@@ -320,6 +362,18 @@ class BeamGrid(Grid):
             out_of_plane_thickness,
             degree_of_freedom=3,
         )
+        self.transformation_matrix = np.zeros((len(self.links), 6, 6))
+        for n, angle in enumerate(self.angle_of_links):
+            cos_angle = np.cos(angle)
+            sin_angle = np.sin(angle)
+            self.transformation_matrix[n, :, :] = np.array(
+                [[  cos_angle, sin_angle, 0,          0,         0, 0],
+                 [          0,         0, 0,  cos_angle, sin_angle, 0],
+                 [ -sin_angle, cos_angle, 0,          0,         0, 0],
+                 [          0,         0, 0, -sin_angle, cos_angle, 0],
+                 [          0,         0, 1,          0,         0, 0],
+                 [          0,         0, 0,          0,         0, 1]]
+            )
 
     def deploy_links(self):
         links = []
@@ -329,15 +383,23 @@ class BeamGrid(Grid):
             if i % self.number_of_nodes_at_each_side[0] == 0:
                 # i at the left boundary
                 grid_list = np.array([
-                    1, self.number_of_nodes_at_each_side[0], self.number_of_nodes_at_each_side[0]+1
+                    1, 
+                    self.number_of_nodes_at_each_side[0], 
+                    self.number_of_nodes_at_each_side[0]+1
                 ])
             elif i % self.number_of_nodes_at_each_side[0] == self.number_of_nodes_at_each_side[0]-1:
                 # i at the right boundary
-                grid_list = np.array([self.number_of_nodes_at_each_side[0]-1, self.number_of_nodes_at_each_side[0]])
+                grid_list = np.array([
+                    self.number_of_nodes_at_each_side[0]-1, 
+                    self.number_of_nodes_at_each_side[0]
+                ])
             else:
                 # i not at boundaries
                 grid_list = np.array([
-                    1, self.number_of_nodes_at_each_side[0]-1, self.number_of_nodes_at_each_side[0], self.number_of_nodes_at_each_side[0]+1
+                    1,
+                    self.number_of_nodes_at_each_side[0]-1,
+                    self.number_of_nodes_at_each_side[0],
+                    self.number_of_nodes_at_each_side[0]+1
                 ])
             grid_list += i
             grid_list = grid_list[np.where(grid_list<len(self.nodes))]
@@ -353,3 +415,76 @@ class BeamGrid(Grid):
                 length_of_links.append(length)
                 angle_of_links.append(angle)
         return np.array(links), np.array(length_of_links), np.array(angle_of_links)
+
+    def compute_stiffness_matrix(
+        self, 
+        in_plane_thickness: np.ndarray | None = None,
+    ):
+        in_plane_thickness = self.check_in_plane_thickness_value(in_plane_thickness)
+        cross_sectional_area = self.compute_cross_sectional_area(in_plane_thickness)
+        second_moment_of_cross_sectional_area = self.compute_second_moment_of_cross_sectional_area(in_plane_thickness)
+        self.stiffness_matrix[:, :] = 0
+        for n, link in enumerate(self.links):
+            i, j = link[0], link[1]
+            EAdL = (
+                self.youngs_modulus[n] * cross_sectional_area[n] / self.length_of_links[n]
+            )
+            EIdL_2 = (
+                self.youngs_modulus[n] * second_moment_of_cross_sectional_area[n] / (self.length_of_links[n]**2)
+            )
+            EIdL_3 = (
+                self.youngs_modulus[n] * second_moment_of_cross_sectional_area[n] / (self.length_of_links[n]**3)
+            )
+            EI2dL = (
+                2 * self.youngs_modulus[n] * second_moment_of_cross_sectional_area[n] / self.length_of_links[n]
+            )
+            EI4dL = (
+                4 * self.youngs_modulus[n] * second_moment_of_cross_sectional_area[n] / self.length_of_links[n]
+            )
+            local_stiffness_matrix = np.array(
+                [[  EAdL, -EAdL,       0,       0,       0,       0],
+                 [ -EAdL,  EAdL,       0,       0,       0,       0],
+                 [     0,     0,  EIdL_3, -EIdL_3,  EIdL_2,  EIdL_2],
+                 [     0,     0, -EIdL_3,  EIdL_3, -EIdL_2, -EIdL_2],
+                 [     0,     0,  EIdL_2, -EIdL_2,   EI4dL,   EI2dL],
+                 [     0,     0,  EIdL_2, -EIdL_2,   EI2dL,   EI4dL]]
+            )
+            indices = [3*i, 3*i+1, 3*i+2, 3*j, 3*j+1, 3*j+2]
+            self.stiffness_matrix[np.ix_(indices, indices)] += (
+                self.transformation_matrix[n].T @ (
+                    local_stiffness_matrix @ self.transformation_matrix[n]
+                )
+            )
+        return self.stiffness_matrix.copy()
+
+    def compute_gradient_of_strain_energy(
+        self,
+        grid_displacement: np.ndarray,
+        in_plane_thickness: np.ndarray | None = None,
+    ):
+        in_plane_thickness = self.check_in_plane_thickness_value(in_plane_thickness)
+        gradient_of_cross_sectional_area = (
+            self.compute_gradient_of_cross_sectional_area(
+                in_plane_thickness
+            )
+        )
+        gradient_of_second_moment_of_cross_sectional_area = (
+            self.compute_gradient_of_second_moment_of_cross_sectional_area(
+                in_plane_thickness
+            )
+        )
+        gradient_of_strain_energy = np.zeros(len(self.links))
+        
+        for n, link in enumerate(self.links):
+            i, j = link[0], link[1]
+        #     local_displacement = np.array(
+        #         [grid_displacement[2*i]*np.cos(angle)+grid_displacement[2*i+1]*np.sin(angle),
+        #          grid_displacement[2*j]*np.cos(angle)+grid_displacement[2*j+1]*np.sin(angle)]
+        #     )
+        #     gradient_of_strain_energy[n] = -0.5 * local_stiffness * (
+        #         local_displacement @ (
+        #             TrussGrid.LOCAL_STIFFNESS_MATRIX @ 
+        #             local_displacement
+        #         )
+        #     )
+        return gradient_of_strain_energy
