@@ -311,22 +311,21 @@ class TrussGrid(Grid):
                 in_plane_thickness
             )
         )
-
         gradient_of_strain_energy = np.zeros(len(self.links))
-        
         for n, link in enumerate(self.links):
             i, j = link[0], link[1]
-            angle = self.angle_of_links[n]
             gradient_of_local_stiffness = (
                 self.youngs_modulus[n] * gradient_of_cross_sectional_area[n] / self.length_of_links[n]
             )
-            local_displacement = np.array(
-                [grid_displacement[2*i]*np.cos(angle)+grid_displacement[2*i+1]*np.sin(angle),
-                 grid_displacement[2*j]*np.cos(angle)+grid_displacement[2*j+1]*np.sin(angle)]
+            gradient_of_local_stiffness_matrix = np.array(
+                [[  gradient_of_local_stiffness, -gradient_of_local_stiffness],
+                 [ -gradient_of_local_stiffness,  gradient_of_local_stiffness]]
             )
-            gradient_of_strain_energy[n] = -0.5 * gradient_of_local_stiffness * (
+            indices = np.ix_([2*i, 2*i+1, 2*j, 2*j+1])
+            local_displacement = self.transformation_matrix[n] @ grid_displacement[indices]
+            gradient_of_strain_energy[n] = -0.5 * (
                 local_displacement @ (
-                    TrussGrid.LOCAL_STIFFNESS_MATRIX @ 
+                    gradient_of_local_stiffness_matrix @ 
                     local_displacement
                 )
             )
