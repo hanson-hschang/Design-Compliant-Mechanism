@@ -132,6 +132,20 @@ class Grid(ABC):
     def compute_gradient_of_strain_energy(self, grid_displacement: np.ndarray, in_plane_thickness=None):
         pass
 
+    def compute_strain_energy(
+        self,
+        grid_displacement: np.ndarray,
+        grid_displacement_the_other: np.ndarray | None = None,
+    ):
+        if type(grid_displacement_the_other) == type(None):
+            grid_displacement_the_other = grid_displacement
+        energy = 0.5 * (
+            grid_displacement_the_other @ (
+                self.stiffness_matrix @ grid_displacement
+            )
+        )
+        return energy
+
     def remove_nodes(self, x_bounds=None, y_bounds=None):
         x_bounds = [-np.inf, np.inf] if type(x_bounds) == type(None) else x_bounds
         y_bounds = [-np.inf, np.inf] if type(y_bounds) == type(None) else y_bounds
