@@ -317,6 +317,8 @@ class TrussGrid(Grid):
                 in_plane_thickness
             )
         )
+        if type(grid_displacement_the_other) == type(None):
+            grid_displacement_the_other = grid_displacement
         gradient_of_strain_energy = np.zeros(len(self.links))
         for n, link in enumerate(self.links):
             i, j = link[0], link[1]
@@ -329,10 +331,7 @@ class TrussGrid(Grid):
             )
             indices = np.ix_([2*i, 2*i+1, 2*j, 2*j+1])
             local_displacement = self.transformation_matrix[n] @ grid_displacement[indices]
-            if type(grid_displacement_the_other) == type(None):
-                local_displacement_the_other = local_displacement
-            else:
-                local_displacement_the_other = self.transformation_matrix[n] @ grid_displacement_the_other[indices]
+            local_displacement_the_other = self.transformation_matrix[n] @ grid_displacement_the_other[indices]
             gradient_of_strain_energy[n] = -0.5 * (
                 local_displacement_the_other @ (
                     gradient_of_local_stiffness_matrix @ 
@@ -470,6 +469,7 @@ class BeamGrid(Grid):
         self,
         grid_displacement: np.ndarray,
         in_plane_thickness: np.ndarray | None = None,
+        grid_displacement_the_other: np.ndarray | None = None,
     ):
         in_plane_thickness = self.check_in_plane_thickness_value(in_plane_thickness)
         gradient_of_cross_sectional_area = (
@@ -482,6 +482,8 @@ class BeamGrid(Grid):
                 in_plane_thickness
             )
         )
+        if type(grid_displacement_the_other) == type(None):
+            grid_displacement_the_other = grid_displacement
         gradient_of_strain_energy = np.zeros(len(self.links))
         for n, link in enumerate(self.links):
             i, j = link[0], link[1]
@@ -510,8 +512,12 @@ class BeamGrid(Grid):
             )
             indices = np.ix_([3*i, 3*i+1, 3*i+2, 3*j, 3*j+1, 3*j+2])
             local_displacement = self.transformation_matrix[n] @ grid_displacement[indices]
+            # if type(grid_displacement_the_other) == type(None):
+            #     local_displacement_the_other = local_displacement
+            # else:
+            local_displacement_the_other = self.transformation_matrix[n] @ grid_displacement_the_other[indices]
             gradient_of_strain_energy[n] = -0.5 * (
-                local_displacement @ (
+                local_displacement_the_other @ (
                     gradient_of_local_stiffness_matrix @ 
                     local_displacement
                 )
