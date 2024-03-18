@@ -512,9 +512,6 @@ class BeamGrid(Grid):
             )
             indices = np.ix_([3*i, 3*i+1, 3*i+2, 3*j, 3*j+1, 3*j+2])
             local_displacement = self.transformation_matrix[n] @ grid_displacement[indices]
-            # if type(grid_displacement_the_other) == type(None):
-            #     local_displacement_the_other = local_displacement
-            # else:
             local_displacement_the_other = self.transformation_matrix[n] @ grid_displacement_the_other[indices]
             gradient_of_strain_energy[n] = -0.5 * (
                 local_displacement_the_other @ (
