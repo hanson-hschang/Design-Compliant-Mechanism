@@ -188,14 +188,16 @@ class Grid(ABC):
         self, 
         condition_list: list,
         node_range: NodeRange, 
-        condition: str, 
+        conditions: str | list[str], 
         value: float, 
     ):
         nodes_indicies = node_range.get_indicies(self.nodes)
+        conditions = [conditions] if type(conditions) == str else conditions
         for index in nodes_indicies:
-            condition_list.append(
-                [index, condition, value]
-            )
+            for condition in conditions:
+                condition_list.append(
+                    [index, condition, value]
+                )
     
     def plot(
         self, 
