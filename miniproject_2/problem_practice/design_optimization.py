@@ -88,7 +88,7 @@ class TopologyOptimization:
         self.fem = fem
         self.volume_constraint = volume_constraint
         self.number_of_maximum_iterations = number_of_maximum_iterations
-        self.tol = kwargs.get('tol', 1e-4)
+        self.tol = kwargs.pop('tol', 1e-4)
 
     def update_thickness(
         self, 
@@ -102,10 +102,71 @@ class TopologyOptimization:
             self.fem.grid.out_of_plane_thickness
         )
 
-    def optimize(self, **kwargs):
-        plot_flag = kwargs.get('plot_flag', False)
+    def optimize_energy(self, **kwargs):
+        plot_flag = kwargs.pop('plot_flag', False)
         if plot_flag:
-            show_numbers = kwargs.get('show_numbers', 4)
+            show_numbers = kwargs.pop('show_numbers', 4)
+            fig, ax = plt.subplots()
+            colors = iter(mpl.colormaps['tab10'].colors)
+            plot_indicies = np.logspace(
+                0, 
+                np.log10(self.number_of_maximum_iterations), 
+                show_numbers, 
+                dtype=int
+            )
+            plot_indicies[0] = 0
+        
+        thickness = self.fem.grid.in_plane_thickness.copy()
+        for i in range(self.number_of_maximum_iterations):
+
+            # Deform the grid based on the current thickness setting
+            grid_displacement = self.fem.deform(
+                in_plane_thickness=thickness
+            )
+
+            # Compute gradient of strain energy based on current thickness setting
+            gradient_of_strain_energy = self.fem.grid.compute_gradient_of_strain_energy(
+                grid_displacement=grid_displacement,
+                in_plane_thickness=thickness
+            )
+            
+            thickness = self.update_thickness(thickness, gradient_of_strain_energy)
+
+            if plot_flag and i in plot_indicies:
+                color = next(colors)
+                ax = self.fem.grid.plot(
+                    ax,
+                    in_plane_thickness=thickness, 
+                    color=color,
+                )
+                ax.plot(
+                    [],[], 
+                    color=color,
+                    label='iter No. '+str(i+1)
+                )
+                
+        if plot_flag:
+            color = next(colors)
+            ax = self.fem.grid.plot(
+                ax,
+                in_plane_thickness=thickness, 
+                color=color,
+            )
+            ax.plot(
+                [],[], 
+                color=color,
+                label='iter No. '+str(i+1)
+            )
+            ax.axis('equal')
+            ax.legend()
+            fig.tight_layout()
+
+        return thickness
+    
+    def optimize_geometric_advantage(self, **kwargs):
+        plot_flag = kwargs.pop('plot_flag', False)
+        if plot_flag:
+            show_numbers = kwargs.pop('show_numbers', 4)
             fig, ax = plt.subplots()
             colors = iter(mpl.colormaps['tab10'].colors)
             plot_indicies = np.logspace(

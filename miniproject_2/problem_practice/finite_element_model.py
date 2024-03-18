@@ -9,7 +9,13 @@ import numpy as np
 from grid import NodeRange, Grid
 
 class OutputDisplacement:
-    def __init__(self, grid: Grid, position: list, condition: str, spring_constant: float):
+    def __init__(
+        self, 
+        grid: Grid, 
+        position: list, 
+        condition: str, 
+        spring_constant: float
+    ):
         self.position = np.array(position)
         self.condition = condition
         self.spring_constant = spring_constant
@@ -21,6 +27,8 @@ class OutputDisplacement:
         )
         index = grid.degree_of_freedom * self.node_index + grid.DIRECTION_DICT[self.condition]
         self.stiffness_matrix[index, index] = self.spring_constant
+        self.vectorized_external_loads = np.zeros(total_degree_of_freedom)
+        self.vectorized_external_loads[index] = 1
     
     def add_output_displacement_matrix(self, stiffness_matrix: np.ndarray):
         return stiffness_matrix + self.stiffness_matrix
@@ -35,7 +43,7 @@ class FEM:
     ):
         self.grid = grid
         number_of_nodes = len(self.grid.nodes)
-        degree_of_freedom = grid.degree_of_freedom
+        degree_of_freedom = self.grid.degree_of_freedom
         self.grid_displacement = np.zeros(
             degree_of_freedom * number_of_nodes
         )
@@ -102,6 +110,7 @@ class FEM:
         degree_of_freedom = self.grid.degree_of_freedom
         counter = 0
         boundary_constraints_indicies = list(self.sorted_boundary_constraints.keys())
+        complete_grid_displacement = np.zeros(self.grid_displacement.shape)
         for i in range(len(self.grid.nodes)):
             if boundary_constraints_indicies != [] and i == boundary_constraints_indicies[-1]:
                 conditions = set(self.sorted_boundary_constraints[i].keys())
@@ -116,14 +125,30 @@ class FEM:
             else:
                 node_displacement = grid_displacement[counter:counter+degree_of_freedom]
                 counter += degree_of_freedom
-            self.grid_displacement[degree_of_freedom*i:degree_of_freedom*(i+1)] = node_displacement
+            complete_grid_displacement[degree_of_freedom*i:degree_of_freedom*(i+1)] = node_displacement
+        return complete_grid_displacement
 
-    def compute_grid_displacement(self):
-        return self.incorporate_boundary_constraints(
+    def compute_grid_displacement(self,):
+        self.grid_displacement = self.incorporate_boundary_constraints(
             grid_displacement=np.linalg.inv(self.stiffness_matrix) @ self.vectorized_external_loads
-        )    
+        )
 
-    def deform(self, in_plane_thickness=None):
+    def compute_grid_virtual_displacement(self,):
+        return self.incorporate_boundary_constraints(
+            grid_displacement=np.linalg.inv(self.stiffness_matrix) @ self.output_displacement.vectorized_external_loads
+        )
+
+    def deform(
+        self, 
+        in_plane_thickness: np.ndarray | None = None,
+    ):
         self.compute_stiffness_matrix(in_plane_thickness)
         self.compute_grid_displacement()
         return self.grid_displacement
+    
+    def virtual_deform(
+        self, 
+        in_plane_thickness: np.ndarray | None = None, 
+    ):
+        self.compute_stiffness_matrix(in_plane_thickness)
+        return self.compute_grid_virtual_displacement()

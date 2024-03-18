@@ -113,7 +113,7 @@ def main():
     )
 
     # Compute optimization and deformation 
-    thickness = model.optimize(plot_flag=True)
+    thickness = model.optimize_energy(plot_flag=True)
     grid_displacement = model.fem.deform(thickness)
 
     # Create plots
