@@ -197,27 +197,30 @@ class Grid(ABC):
                 [index, condition, value]
             )
     
-    def plot(self, ax, grid_displacement=None, in_plane_thickness=None, **kwargs):
-        grid_displacement = np.zeros(2*len(self.nodes)) if type(grid_displacement) == type(None) else grid_displacement
-        in_plane_thickness = self.in_plane_thickness if type(in_plane_thickness) == type(None) else in_plane_thickness
+    def plot(
+        self, 
+        ax, 
+        grid_displacement: np.ndarray | None = None, 
+        in_plane_thickness: np.ndarray | None = None, 
+        **kwargs
+    ):
+        grid_displacement = np.zeros(self.degree_of_freedom*len(self.nodes)) if type(grid_displacement) == type(None) else grid_displacement
+        in_plane_thickness = self.check_in_plane_thickness_value(in_plane_thickness)
         in_plane_thickness_max = max(in_plane_thickness) / kwargs.pop('linewidth', 3)
 
         for link, thickness in zip(self.links, in_plane_thickness):
             i, j = link[0], link[1]
             ax.plot(
-                [self.nodes[i][0]+grid_displacement[2*i], self.nodes[j][0]+grid_displacement[2*j]],
-                [self.nodes[i][1]+grid_displacement[2*i+1], self.nodes[j][1]+grid_displacement[2*j+1]],
+                [self.nodes[i][0]+grid_displacement[self.degree_of_freedom*i], 
+                 self.nodes[j][0]+grid_displacement[self.degree_of_freedom*j]],
+                [self.nodes[i][1]+grid_displacement[self.degree_of_freedom*i+1], 
+                 self.nodes[j][1]+grid_displacement[self.degree_of_freedom*j+1]],
                 linewidth=thickness/in_plane_thickness_max,
                 **kwargs
             )
         return ax
 
 class TrussGrid(Grid):
-
-    LOCAL_STIFFNESS_MATRIX = np.array(
-        [[ 1, -1],
-         [-1,  1]]
-    )
 
     DOF_DICT = {
         'position_x': 0,
@@ -473,17 +476,37 @@ class BeamGrid(Grid):
             )
         )
         gradient_of_strain_energy = np.zeros(len(self.links))
-        
         for n, link in enumerate(self.links):
             i, j = link[0], link[1]
-        #     local_displacement = np.array(
-        #         [grid_displacement[2*i]*np.cos(angle)+grid_displacement[2*i+1]*np.sin(angle),
-        #          grid_displacement[2*j]*np.cos(angle)+grid_displacement[2*j+1]*np.sin(angle)]
-        #     )
-        #     gradient_of_strain_energy[n] = -0.5 * local_stiffness * (
-        #         local_displacement @ (
-        #             TrussGrid.LOCAL_STIFFNESS_MATRIX @ 
-        #             local_displacement
-        #         )
-        #     )
-        return gradient_of_strain_energy
+            gradient_of_EAdL = (
+                self.youngs_modulus[n] * gradient_of_cross_sectional_area[n] / self.length_of_links[n]
+            )
+            gradient_of_EIdL_2 = (
+                self.youngs_modulus[n] * gradient_of_second_moment_of_cross_sectional_area[n] / (self.length_of_links[n]**2)
+            )
+            gradient_of_EIdL_3 = (
+                self.youngs_modulus[n] * gradient_of_second_moment_of_cross_sectional_area[n] / (self.length_of_links[n]**3)
+            )
+            gradient_of_EI2dL = (
+                2 * self.youngs_modulus[n] * gradient_of_second_moment_of_cross_sectional_area[n] / self.length_of_links[n]
+            )
+            gradient_of_EI4dL = (
+                4 * self.youngs_modulus[n] * gradient_of_second_moment_of_cross_sectional_area[n] / self.length_of_links[n]
+            )
+            gradient_of_local_stiffness_matrix = np.array(
+                [[  gradient_of_EAdL, -gradient_of_EAdL,                   0,                   0,                   0,                   0],
+                 [ -gradient_of_EAdL,  gradient_of_EAdL,                   0,                   0,                   0,                   0],
+                 [                 0,                 0,  gradient_of_EIdL_3, -gradient_of_EIdL_3,  gradient_of_EIdL_2,  gradient_of_EIdL_2],
+                 [                 0,                 0, -gradient_of_EIdL_3,  gradient_of_EIdL_3, -gradient_of_EIdL_2, -gradient_of_EIdL_2],
+                 [                 0,                 0,  gradient_of_EIdL_2, -gradient_of_EIdL_2,   gradient_of_EI4dL,   gradient_of_EI2dL],
+                 [                 0,                 0,  gradient_of_EIdL_2, -gradient_of_EIdL_2,   gradient_of_EI2dL,   gradient_of_EI4dL]]
+            )
+            indices = np.ix_([3*i, 3*i+1, 3*i+2, 3*j, 3*j+1, 3*j+2])
+            local_displacement = self.transformation_matrix[n] @ grid_displacement[indices]
+            gradient_of_strain_energy[n] = -0.5 * (
+                local_displacement @ (
+                    gradient_of_local_stiffness_matrix @ 
+                    local_displacement
+                )
+            )
+        return gradient_of_strain_energy   
