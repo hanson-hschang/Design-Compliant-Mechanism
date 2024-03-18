@@ -47,7 +47,13 @@ class FEM:
         self.grid_displacement = np.zeros(
             degree_of_freedom * number_of_nodes
         )
-        
+
+        self.output_displacement = output_displacement
+        if type(self.output_displacement) == OutputDisplacement:
+            self.add_output_displacement_stiffness_matrix = self.output_displacement.add_output_displacement_matrix
+        else:
+            self.add_output_displacement_stiffness_matrix = lambda stiffness_matrix: stiffness_matrix 
+
         self.vectorized_external_loads = np.zeros(
             degree_of_freedom * number_of_nodes
         )
@@ -78,17 +84,17 @@ class FEM:
                 self.vectorized_external_loads,
                 removed_entries_list
             )
+            if type(self.output_displacement) == OutputDisplacement:
+                self.output_displacement.vectorized_external_loads = np.delete(
+                    self.output_displacement.vectorized_external_loads,
+                    removed_entries_list
+                )
         
         self.stiffness_matrix = np.diag(
             np.inf * np.ones(len(self.vectorized_external_loads))
         )
         
-        self.output_displacement = output_displacement
-        if type(self.output_displacement) == OutputDisplacement:
-            self.add_output_displacement_stiffness_matrix = self.output_displacement.add_output_displacement_matrix
-        else:
-            self.add_output_displacement_stiffness_matrix = lambda stiffness_matrix: stiffness_matrix 
-    
+        
     def compute_stiffness_matrix(self, in_plane_thickness=None):
 
         self.stiffness_matrix = self.add_output_displacement_stiffness_matrix(
