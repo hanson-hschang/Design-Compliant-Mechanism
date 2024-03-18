@@ -85,6 +85,7 @@ class FEM:
                 removed_entries_list
             )
             if type(self.output_displacement) == OutputDisplacement:
+                # TODO: add warning if the output_displacement is in the boundary constraints
                 self.output_displacement.vectorized_external_loads = np.delete(
                     self.output_displacement.vectorized_external_loads,
                     removed_entries_list
