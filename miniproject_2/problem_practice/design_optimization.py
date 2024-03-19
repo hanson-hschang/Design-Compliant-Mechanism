@@ -190,7 +190,6 @@ class TopologyOptimization:
 
             # TODO: gradient is different when there is input and output involved 
             # (i.e. self.fem.output_displacement is not None)
-            # Update the thickness based on the gradient for the next iteration
 
             grid_displacement_the_other = self.fem.virtual_deform(
                 in_plane_thickness=thickness,
@@ -221,11 +220,13 @@ class TopologyOptimization:
                 grid_displacement_the_other=grid_displacement_the_other,
             )
 
+            # FIXME: the gradient is not all the same sign
             gradient = (
                 (gradient_of_cross_strain_energy * strain_energy) -
                 (cross_strain_energy * gradient_of_strain_energy)
             ) / (strain_energy**2)
 
+            # Update the thickness based on the gradient for the next iteration
             thickness = self.update_thickness(thickness, gradient)
 
             if plot_flag and i in plot_indicies:
