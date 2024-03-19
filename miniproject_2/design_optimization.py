@@ -141,7 +141,7 @@ class TopologyOptimization:
                 grid_displacement=grid_displacement,
             )
 
-            thickness = self.update_thickness(thickness, gradient_of_strain_energy)
+            thickness[...] = self.update_thickness(thickness, gradient_of_strain_energy)
 
             if plot_flag and i in plot_indicies:
                 color = next(colors)
@@ -205,16 +205,11 @@ class TopologyOptimization:
             # Compute strain energy based on current thickness setting
             strain_energy = self.fem.grid.compute_strain_energy(
                 grid_displacement=grid_displacement,
-            )# + self.fem.output_displacement.compute_energy(
-            #    grid_displacement=grid_displacement,
-            #)
+            )
             cross_strain_energy = self.fem.grid.compute_strain_energy(
                 grid_displacement=grid_displacement,
                 grid_displacement_the_other=grid_displacement_the_other,
-            ) #+ self.fem.output_displacement.compute_energy(
-            #    grid_displacement=grid_displacement,
-            #    grid_displacement_the_other=grid_displacement_the_other,
-            #)
+            )
 
             # Compute gradient of strain energy based on current thickness setting
             self.fem.grid.compute_gradient_of_stiffness_matrix(
@@ -235,7 +230,7 @@ class TopologyOptimization:
             ) / (strain_energy**2)
 
             # Update the thickness based on the gradient for the next iteration
-            thickness = self.update_thickness(thickness, gradient)
+            thickness[...] = self.update_thickness(thickness, gradient)
 
             if plot_flag and i in plot_indicies:
                 color = next(colors)

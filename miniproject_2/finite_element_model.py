@@ -136,7 +136,7 @@ class FEM:
             self.stiffness_matrix = np.delete(self.stiffness_matrix, removed_entries_list, axis=0)
             self.stiffness_matrix = np.delete(self.stiffness_matrix, removed_entries_list, axis=1)
 
-        self.stiffness_matrix = self.add_output_displacement_stiffness_matrix(
+        self.stiffness_matrix[...] = self.add_output_displacement_stiffness_matrix(
             self.stiffness_matrix
         )
 
@@ -163,7 +163,7 @@ class FEM:
         return complete_grid_displacement
 
     def compute_grid_displacement(self,):
-        self.grid_displacement = self.incorporate_boundary_constraints(
+        self.grid_displacement[...] = self.incorporate_boundary_constraints(
             grid_displacement=np.linalg.inv(self.stiffness_matrix) @ self.vectorized_external_loads
         )
 

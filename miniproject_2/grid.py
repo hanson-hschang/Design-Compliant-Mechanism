@@ -87,6 +87,7 @@ class Grid(ABC):
         self.gradient_of_stiffness_matrix = np.zeros(
             (len(self.links), total_degree_of_freedom, total_degree_of_freedom)
         )
+        self.gradient_of_strain_energy = np.zeros(len(self.links))
 
     def compute(self, value):
         if isinstance(value, (int, float)):
@@ -162,15 +163,14 @@ class Grid(ABC):
     ):
         if type(grid_displacement_the_other) == type(None):
             grid_displacement_the_other = grid_displacement
-        gradient_of_strain_energy = np.zeros(len(self.links))
         for n in range(len(self.links)):
-            gradient_of_strain_energy[n] = -0.5 * (
+            self.gradient_of_strain_energy[n] = -0.5 * (
                 grid_displacement_the_other @ (
                     self.gradient_of_stiffness_matrix[n] @
                     grid_displacement
                 )
             )
-        return gradient_of_strain_energy  
+        return self.gradient_of_strain_energy  
 
     def remove_nodes(self, x_bounds=None, y_bounds=None):
         x_bounds = [-np.inf, np.inf] if type(x_bounds) == type(None) else x_bounds
@@ -201,6 +201,15 @@ class Grid(ABC):
                 )
         self.links = np.array(kept_links)
         self.update_link_related_parameters(kept_links_list)
+
+        total_degree_of_freedom = self.degree_of_freedom * len(self.nodes)
+        self.stiffness_matrix = np.diag(
+            np.inf * np.ones(total_degree_of_freedom)
+        )
+        self.gradient_of_stiffness_matrix = np.zeros(
+            (len(self.links), total_degree_of_freedom, total_degree_of_freedom)
+        )
+        self.gradient_of_strain_energy = np.zeros(len(self.links))
 
     def update_link_related_parameters(self, kept_links_list: list):
         self.length_of_links = np.array([
