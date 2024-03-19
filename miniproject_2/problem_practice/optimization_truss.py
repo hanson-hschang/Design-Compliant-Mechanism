@@ -5,7 +5,9 @@ Created on Mar. 01, 2024
 
 import matplotlib.pyplot as plt
 
-from grid import TrussGrid, NodeRange
+import sys
+sys.path.append('..')
+from grid import TrussGrid
 from finite_element_model import FEM
 from design_optimization import TopologyOptimization, VolumeConstraint
 from plot_tools import plot_optimization, plot_deformation

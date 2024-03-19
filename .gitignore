@@ -3,6 +3,13 @@
 *.py[cod]
 *$py.class
 
+# Mac files
+.DS_Store
+*/.DS_Store
+
+# MATLAB files
+*.m
+
 # C extensions
 *.so
 
