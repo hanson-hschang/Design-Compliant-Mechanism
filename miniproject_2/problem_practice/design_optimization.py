@@ -45,19 +45,23 @@ class VolumeConstraint:
     ):
         lagrange_multiplier_upper = self.lagrange_multiplier_max
         lagrange_multiplier_lower = self.lagrange_multiplier_min
+        # TODO: change the move parameter as part of the class argument
+        move = 0.25
+        lower_bound = np.array([max(self.lower_bound, thickness_at_n-move) for thickness_at_n in thickness])
+        upper_bound = np.array([min(self.upper_bound, thickness_at_n+move) for thickness_at_n in thickness])
         while lagrange_multiplier_upper - lagrange_multiplier_lower > self.lagrange_multiplier_tol:
             # Guess a lagrange multiplier using the average of lower and upper ones
             lagrange_multiplier = (lagrange_multiplier_lower + lagrange_multiplier_upper) / 2
             
             # Compute the new thickness
             new_thickness = thickness * (
-                - self.update_ratio * gradient / 
+                -self.update_ratio * gradient / 
                 (lagrange_multiplier * length_of_links)
             ) ** self.update_power
             
             # Limit the thickness is in between the lower and upper bounds
             new_thickness = np.clip(
-                new_thickness, self.lower_bound, self.upper_bound
+                new_thickness, lower_bound, upper_bound
             )
 
             # Coupute the total volume in current setting
@@ -74,7 +78,7 @@ class VolumeConstraint:
             else:
                 # If it is satisfied, decrease the upper bound of the lagrange multiplier
                 lagrange_multiplier_upper = lagrange_multiplier
-        
+
         return new_thickness
 
 class TopologyOptimization:
@@ -129,7 +133,7 @@ class TopologyOptimization:
                 grid_displacement=grid_displacement,
                 in_plane_thickness=thickness
             )
-            
+
             thickness = self.update_thickness(thickness, gradient_of_strain_energy)
 
             if plot_flag and i in plot_indicies:
@@ -179,22 +183,50 @@ class TopologyOptimization:
         
         thickness = self.fem.grid.in_plane_thickness.copy()
         for i in range(self.number_of_maximum_iterations):
-
             # Deform the grid based on the current thickness setting
             grid_displacement = self.fem.deform(
-                in_plane_thickness=thickness
-            )
-
-            # Compute gradient of strain energy based on current thickness setting
-            gradient_of_strain_energy = self.fem.grid.compute_gradient_of_strain_energy(
-                grid_displacement=grid_displacement,
-                in_plane_thickness=thickness
+                in_plane_thickness=thickness,
             )
 
             # TODO: gradient is different when there is input and output involved 
             # (i.e. self.fem.output_displacement is not None)
             # Update the thickness based on the gradient for the next iteration
-            thickness = self.update_thickness(thickness, gradient_of_strain_energy)
+
+            grid_displacement_the_other = self.fem.virtual_deform(
+                in_plane_thickness=thickness,
+            )
+
+            # Compute strain energy based on current thickness setting
+            strain_energy = self.fem.grid.compute_strain_energy(
+                grid_displacement=grid_displacement,
+            ) + self.fem.output_displacement.compute_energy(
+                grid_displacement=grid_displacement,
+            )
+            cross_strain_energy = self.fem.grid.compute_strain_energy(
+                grid_displacement=grid_displacement,
+                grid_displacement_the_other=grid_displacement_the_other,
+            ) + self.fem.output_displacement.compute_energy(
+                grid_displacement=grid_displacement,
+                grid_displacement_the_other=grid_displacement_the_other,
+            )
+
+            # Compute gradient of strain energy based on current thickness setting
+            gradient_of_strain_energy = self.fem.grid.compute_gradient_of_strain_energy(
+                grid_displacement=grid_displacement,
+                in_plane_thickness=thickness,
+            )
+            gradient_of_cross_strain_energy = self.fem.grid.compute_gradient_of_strain_energy(
+                grid_displacement=grid_displacement,
+                in_plane_thickness=thickness,
+                grid_displacement_the_other=grid_displacement_the_other,
+            )
+
+            gradient = (
+                (gradient_of_cross_strain_energy * strain_energy) -
+                (cross_strain_energy * gradient_of_strain_energy)
+            ) / (strain_energy**2)
+
+            thickness = self.update_thickness(thickness, gradient)
 
             if plot_flag and i in plot_indicies:
                 color = next(colors)
