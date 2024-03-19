@@ -20,15 +20,36 @@ class OutputDisplacement:
         self.condition = condition
         self.spring_constant = spring_constant
 
-        self.node_index = NodeRange.find_nearest_node(grid.nodes, self.position)
         total_degree_of_freedom = grid.degree_of_freedom * len(grid.nodes)
         self.stiffness_matrix = np.zeros(
             (total_degree_of_freedom, total_degree_of_freedom)
         )
+        self.vectorized_external_loads = np.zeros(total_degree_of_freedom)
+
+        self.node_index = NodeRange.find_nearest_node(grid.nodes, self.position)
         self.dof_index = grid.degree_of_freedom * self.node_index + grid.DIRECTION_DICT[self.condition]
         self.stiffness_matrix[self.dof_index, self.dof_index] = self.spring_constant
-        self.vectorized_external_loads = np.zeros(total_degree_of_freedom)
         self.vectorized_external_loads[self.dof_index] = 1
+    
+    def remove_dof(
+        self,
+        removed_entries_list: list,
+    ):
+        # TODO: add warning if the output_displacement is in the boundary constraints
+        self.vectorized_external_loads = np.delete(
+            self.vectorized_external_loads,
+            removed_entries_list
+        )
+        self.stiffness_matrix = np.delete(
+            self.stiffness_matrix,
+            removed_entries_list,
+            axis=0,
+        )
+        self.stiffness_matrix = np.delete(
+            self.stiffness_matrix,
+            removed_entries_list,
+            axis=1,
+        )
     
     def add_output_displacement_matrix(self, stiffness_matrix: np.ndarray):
         return stiffness_matrix + self.stiffness_matrix
@@ -55,21 +76,12 @@ class FEM:
         output_displacement: OutputDisplacement | None = None,
     ):
         self.grid = grid
-        number_of_nodes = len(self.grid.nodes)
         degree_of_freedom = self.grid.degree_of_freedom
-        self.grid_displacement = np.zeros(
-            degree_of_freedom * number_of_nodes
-        )
+        total_degree_of_freedom = degree_of_freedom * len(self.grid.nodes)
+        self.grid_displacement = np.zeros(total_degree_of_freedom)
 
         self.output_displacement = output_displacement
-        if type(self.output_displacement) == OutputDisplacement:
-            self.add_output_displacement_stiffness_matrix = self.output_displacement.add_output_displacement_matrix
-        else:
-            self.add_output_displacement_stiffness_matrix = lambda stiffness_matrix: stiffness_matrix 
-
-        self.vectorized_external_loads = np.zeros(
-            degree_of_freedom * number_of_nodes
-        )
+        self.vectorized_external_loads = np.zeros(total_degree_of_freedom)
         for external_load in external_loads:
             index, condition, value = external_load
             self.vectorized_external_loads[
@@ -98,11 +110,7 @@ class FEM:
                 removed_entries_list
             )
             if type(self.output_displacement) == OutputDisplacement:
-                # TODO: add warning if the output_displacement is in the boundary constraints
-                self.output_displacement.vectorized_external_loads = np.delete(
-                    self.output_displacement.vectorized_external_loads,
-                    removed_entries_list
-                )
+                self.output_displacement.remove_dof(removed_entries_list)
         
         self.stiffness_matrix = np.diag(
             np.inf * np.ones(len(self.vectorized_external_loads))
@@ -111,9 +119,7 @@ class FEM:
         
     def compute_stiffness_matrix(self, in_plane_thickness=None):
 
-        self.stiffness_matrix = self.add_output_displacement_stiffness_matrix(
-            stiffness_matrix=self.grid.compute_stiffness_matrix(in_plane_thickness)
-        )
+        self.stiffness_matrix = self.grid.compute_stiffness_matrix(in_plane_thickness)
 
         # Imposing displacement boundary constraints
         for index, boundary_constraint_conditions in self.sorted_boundary_constraints.items():
@@ -153,9 +159,9 @@ class FEM:
             grid_displacement=np.linalg.inv(self.stiffness_matrix) @ self.vectorized_external_loads
         )
 
-    def compute_grid_virtual_displacement(self,):
+    def compute_grid_virtual_displacement(self, stiffness_matrix: np.ndarray):
         return self.incorporate_boundary_constraints(
-            grid_displacement=np.linalg.inv(self.stiffness_matrix) @ self.output_displacement.vectorized_external_loads
+            grid_displacement=np.linalg.inv(stiffness_matrix) @ self.output_displacement.vectorized_external_loads
         )
 
     def deform(
@@ -170,5 +176,7 @@ class FEM:
         self, 
         in_plane_thickness: np.ndarray | None = None, 
     ):
-        self.compute_stiffness_matrix(in_plane_thickness)
-        return self.compute_grid_virtual_displacement()
+        stiffness_matrix = self.output_displacement.add_output_displacement_matrix(
+            stiffness_matrix=self.stiffness_matrix
+        )
+        return self.compute_grid_virtual_displacement(stiffness_matrix)
