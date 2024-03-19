@@ -17,6 +17,7 @@ class VolumeConstraint:
         lower_bound: float,
         update_ratio: float,
         update_power: float,
+        update_step_max: float,
         lagrange_multiplier_setting: dict
     ):
         self.total_max_volume = total_max_volume
@@ -24,6 +25,7 @@ class VolumeConstraint:
         self.lower_bound = lower_bound
         self.update_ratio = update_ratio
         self.update_power = update_power
+        self.update_step_max = update_step_max
         self.lagrange_multiplier_max = lagrange_multiplier_setting.get('max', 1e5)
         self.lagrange_multiplier_min = lagrange_multiplier_setting.get('min', 0)
         self.lagrange_multiplier_tol = lagrange_multiplier_setting.get('tol', 1e-4)
@@ -45,19 +47,22 @@ class VolumeConstraint:
     ):
         lagrange_multiplier_upper = self.lagrange_multiplier_max
         lagrange_multiplier_lower = self.lagrange_multiplier_min
-        # TODO: change the move parameter as part of the class argument
-        move = 0.25
-        lower_bound = np.array([max(self.lower_bound, thickness_at_n-move) for thickness_at_n in thickness])
-        upper_bound = np.array([min(self.upper_bound, thickness_at_n+move) for thickness_at_n in thickness])
+        lower_bound = np.array([max(self.lower_bound, thickness_at_n-self.update_step_max) for thickness_at_n in thickness])
+        upper_bound = np.array([min(self.upper_bound, thickness_at_n+self.update_step_max) for thickness_at_n in thickness])
         while lagrange_multiplier_upper - lagrange_multiplier_lower > self.lagrange_multiplier_tol:
             # Guess a lagrange multiplier using the average of lower and upper ones
             lagrange_multiplier = (lagrange_multiplier_lower + lagrange_multiplier_upper) / 2
             
             # Compute the new thickness
-            new_thickness = thickness * (
+            ratio = (
                 -self.update_ratio * gradient / 
                 (lagrange_multiplier * length_of_links)
-            ) ** self.update_power
+            )
+            negative_index = ratio < 0
+            ratio[negative_index] = 0
+            new_thickness = thickness * (
+                ratio ** self.update_power
+            )
             
             # Limit the thickness is in between the lower and upper bounds
             new_thickness = np.clip(
@@ -198,16 +203,16 @@ class TopologyOptimization:
             # Compute strain energy based on current thickness setting
             strain_energy = self.fem.grid.compute_strain_energy(
                 grid_displacement=grid_displacement,
-            ) + self.fem.output_displacement.compute_energy(
-                grid_displacement=grid_displacement,
-            )
+            )# + self.fem.output_displacement.compute_energy(
+            #    grid_displacement=grid_displacement,
+            #)
             cross_strain_energy = self.fem.grid.compute_strain_energy(
                 grid_displacement=grid_displacement,
                 grid_displacement_the_other=grid_displacement_the_other,
-            ) + self.fem.output_displacement.compute_energy(
-                grid_displacement=grid_displacement,
-                grid_displacement_the_other=grid_displacement_the_other,
-            )
+            ) #+ self.fem.output_displacement.compute_energy(
+            #    grid_displacement=grid_displacement,
+            #    grid_displacement_the_other=grid_displacement_the_other,
+            #)
 
             # Compute gradient of strain energy based on current thickness setting
             gradient_of_strain_energy = self.fem.grid.compute_gradient_of_strain_energy(
@@ -221,7 +226,7 @@ class TopologyOptimization:
             )
 
             # FIXME: the gradient is not all the same sign
-            gradient = (
+            gradient = - (
                 (gradient_of_cross_strain_energy * strain_energy) -
                 (cross_strain_energy * gradient_of_strain_energy)
             ) / (strain_energy**2)
