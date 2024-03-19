@@ -5,63 +5,10 @@ Created on Mar. 01, 2024
 
 import matplotlib.pyplot as plt
 
-from grid import TrussGrid
+from grid import TrussGrid, NodeRange
 from finite_element_model import FEM
 from design_optimization import TopologyOptimization, VolumeConstraint
-
-def plot_optimization(grid: TrussGrid, thickness):
-    fig, ax = plt.subplots()
-    ax = grid.plot(
-        ax,
-        alpha=0.05,
-        color='grey',
-    )
-    ax.plot(
-        [],[], 
-        alpha=0.2,
-        color='grey',
-        label='initial'
-    )
-    ax = grid.plot(
-        ax,
-        in_plane_thickness=thickness, 
-        color='grey'
-    )
-    ax.plot(
-        [],[], 
-        color='grey',
-        label='optimized'
-    )
-    ax.axis('equal')
-    ax.legend()
-    fig.tight_layout()
-    
-def plot_deformation(grid: TrussGrid, thickness, grid_displacement):
-    fig, ax = plt.subplots()
-    ax = grid.plot(
-        ax,
-        in_plane_thickness=thickness, 
-        color='grey',
-    )
-    ax.plot(
-        [],[], 
-        color='grey',
-        label='optimized',
-    )
-    ax = grid.plot(
-        ax,
-        grid_displacement=grid_displacement,
-        in_plane_thickness=thickness, 
-        color='black',
-    )
-    ax.plot(
-        [],[], 
-        color='black',
-        label='optimized - deformed',
-    )
-    ax.axis('equal')
-    ax.legend()
-    fig.tight_layout()
+from plot_tools import plot_optimization, plot_deformation
 
 def main():
    # Setup grid
@@ -105,6 +52,7 @@ def main():
             lower_bound=1e-4, # This cannot be zero. Zero value may cause the invertibility of the stiffness matrix.
             update_ratio=1e3,
             update_power=0.5,
+            update_step_max=0.25,
             lagrange_multiplier_setting=dict(
                 max=1e5, min=0, tol=1e-4
             )
