@@ -25,13 +25,26 @@ class OutputDisplacement:
         self.stiffness_matrix = np.zeros(
             (total_degree_of_freedom, total_degree_of_freedom)
         )
-        index = grid.degree_of_freedom * self.node_index + grid.DIRECTION_DICT[self.condition]
-        self.stiffness_matrix[index, index] = self.spring_constant
+        self.dof_index = grid.degree_of_freedom * self.node_index + grid.DIRECTION_DICT[self.condition]
+        self.stiffness_matrix[self.dof_index, self.dof_index] = self.spring_constant
         self.vectorized_external_loads = np.zeros(total_degree_of_freedom)
-        self.vectorized_external_loads[index] = 1
+        self.vectorized_external_loads[self.dof_index] = 1
     
     def add_output_displacement_matrix(self, stiffness_matrix: np.ndarray):
         return stiffness_matrix + self.stiffness_matrix
+    
+    def compute_energy(
+        self,
+        grid_displacement: np.ndarray,
+        grid_displacement_the_other: np.ndarray | None = None,
+    ):
+        if type(grid_displacement_the_other) == type(None):
+            grid_displacement_the_other = grid_displacement
+        return 0.5 * (
+            grid_displacement_the_other[self.dof_index] * 
+            self.spring_constant * 
+            grid_displacement[self.dof_index]
+        )
 
 class FEM:
     def __init__(
