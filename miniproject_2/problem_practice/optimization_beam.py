@@ -5,14 +5,14 @@ Created on Mar. 14, 2024
 
 import matplotlib.pyplot as plt
 
-from grid import TrussGrid
+from grid import BeamGrid
 from finite_element_model import FEM
 from design_optimization import TopologyOptimization, VolumeConstraint
 from plot_tools import plot_optimization, plot_deformation
 
 def main():
     # Setup grid
-    grid = TrussGrid(
+    grid = BeamGrid(
         number_of_links=[6, 6],
         length_of_sides=[100, 100],
         youngs_modulus=169_000,

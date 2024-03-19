@@ -80,9 +80,12 @@ class Grid(ABC):
         self.out_of_plane_thickness = self.compute(out_of_plane_thickness)
 
         self.degree_of_freedom = degree_of_freedom
-
+        total_degree_of_freedom = self.degree_of_freedom * number_of_nodes
         self.stiffness_matrix = np.diag(
-            np.inf * np.ones(self.degree_of_freedom * number_of_nodes)
+            np.inf * np.ones(total_degree_of_freedom)
+        )
+        self.gradient_of_stiffness_matrix = np.zeros(
+            (len(self.links), total_degree_of_freedom, total_degree_of_freedom)
         )
 
     def compute(self, value):
@@ -125,11 +128,17 @@ class Grid(ABC):
         pass
 
     @abstractmethod
-    def compute_stiffness_matrix(self, in_plane_thickness=None):
+    def compute_stiffness_matrix(
+        self, 
+        in_plane_thickness: np.ndarray | None = None
+    ):
         pass
 
     @abstractmethod
-    def compute_gradient_of_strain_energy(self, grid_displacement: np.ndarray, in_plane_thickness=None):
+    def compute_gradient_of_stiffness_matrix(
+        self, 
+        in_plane_thickness: np.ndarray | None = None
+    ):
         pass
 
     def compute_strain_energy(
@@ -145,6 +154,23 @@ class Grid(ABC):
             )
         )
         return energy
+    
+    def compute_gradient_of_strain_energy(
+        self,
+        grid_displacement: np.ndarray,
+        grid_displacement_the_other: np.ndarray | None = None,
+    ):
+        if type(grid_displacement_the_other) == type(None):
+            grid_displacement_the_other = grid_displacement
+        gradient_of_strain_energy = np.zeros(len(self.links))
+        for n in range(len(self.links)):
+            gradient_of_strain_energy[n] = -0.5 * (
+                grid_displacement_the_other @ (
+                    self.gradient_of_stiffness_matrix[n] @
+                    grid_displacement
+                )
+            )
+        return gradient_of_strain_energy  
 
     def remove_nodes(self, x_bounds=None, y_bounds=None):
         x_bounds = [-np.inf, np.inf] if type(x_bounds) == type(None) else x_bounds
@@ -272,6 +298,10 @@ class TrussGrid(Grid):
                 [[ cos_angle, sin_angle,         0,         0],
                  [         0,         0, cos_angle, sin_angle]]
             )
+
+    def get_indicies(self, i, j):
+        indicies = [2*i, 2*i+1, 2*j, 2*j+1]
+        return np.ix_(indicies, indicies)
     
     def deploy_links(self):
         links = []
@@ -311,7 +341,7 @@ class TrussGrid(Grid):
                 [[  local_stiffness, -local_stiffness],
                  [ -local_stiffness,  local_stiffness]]
             )
-            indices = [2*i, 2*i+1, 2*j, 2*j+1]
+            indices = self.get_indicies(i, j)
             self.stiffness_matrix[np.ix_(indices, indices)] += (
                 self.transformation_matrix[n].T @ (
                     local_stiffness_matrix @ self.transformation_matrix[n]
@@ -319,11 +349,9 @@ class TrussGrid(Grid):
             )
         return self.stiffness_matrix.copy()
 
-    def compute_gradient_of_strain_energy(
+    def compute_gradient_of_stiffness_matrix(
         self,
-        grid_displacement: np.ndarray,
-        in_plane_thickness: np.ndarray | None = None,
-        grid_displacement_the_other: np.ndarray | None = None,
+        in_plane_thickness: np.ndarray | None = None,  
     ):
         in_plane_thickness = self.check_in_plane_thickness_value(in_plane_thickness)
         gradient_of_cross_sectional_area = (
@@ -331,9 +359,7 @@ class TrussGrid(Grid):
                 in_plane_thickness
             )
         )
-        if type(grid_displacement_the_other) == type(None):
-            grid_displacement_the_other = grid_displacement
-        gradient_of_strain_energy = np.zeros(len(self.links))
+        self.gradient_of_stiffness_matrix[:, :, :] = 0
         for n, link in enumerate(self.links):
             i, j = link[0], link[1]
             gradient_of_local_stiffness = (
@@ -343,16 +369,12 @@ class TrussGrid(Grid):
                 [[  gradient_of_local_stiffness, -gradient_of_local_stiffness],
                  [ -gradient_of_local_stiffness,  gradient_of_local_stiffness]]
             )
-            indices = np.ix_([2*i, 2*i+1, 2*j, 2*j+1])
-            local_displacement = self.transformation_matrix[n] @ grid_displacement[indices]
-            local_displacement_the_other = self.transformation_matrix[n] @ grid_displacement_the_other[indices]
-            gradient_of_strain_energy[n] = -0.5 * (
-                local_displacement_the_other @ (
+            self.gradient_of_stiffness_matrix[n][self.get_indicies(i, j)] = (
+                self.transformation_matrix[n].T @ (
                     gradient_of_local_stiffness_matrix @ 
-                    local_displacement
+                    self.transformation_matrix[n]
                 )
             )
-        return gradient_of_strain_energy
 
 class BeamGrid(Grid):
 
@@ -396,6 +418,10 @@ class BeamGrid(Grid):
                  [          0,         0, 1,          0,         0, 0],
                  [          0,         0, 0,          0,         0, 1]]
             )
+
+    def get_indicies(self, i, j):
+        indicies = [3*i, 3*i+1, 3*i+2, 3*j, 3*j+1, 3*j+2]
+        return np.ix_(indicies, indicies)
 
     def deploy_links(self):
         links = []
@@ -471,19 +497,16 @@ class BeamGrid(Grid):
                  [     0,     0,  EIdL_2, -EIdL_2,   EI4dL,   EI2dL],
                  [     0,     0,  EIdL_2, -EIdL_2,   EI2dL,   EI4dL]]
             )
-            indices = [3*i, 3*i+1, 3*i+2, 3*j, 3*j+1, 3*j+2]
-            self.stiffness_matrix[np.ix_(indices, indices)] += (
+            self.stiffness_matrix[self.get_indicies(i, j)] += (
                 self.transformation_matrix[n].T @ (
                     local_stiffness_matrix @ self.transformation_matrix[n]
                 )
             )
         return self.stiffness_matrix.copy()
-
-    def compute_gradient_of_strain_energy(
+    
+    def compute_gradient_of_stiffness_matrix(
         self,
-        grid_displacement: np.ndarray,
-        in_plane_thickness: np.ndarray | None = None,
-        grid_displacement_the_other: np.ndarray | None = None,
+        in_plane_thickness: np.ndarray | None = None,  
     ):
         in_plane_thickness = self.check_in_plane_thickness_value(in_plane_thickness)
         gradient_of_cross_sectional_area = (
@@ -496,9 +519,7 @@ class BeamGrid(Grid):
                 in_plane_thickness
             )
         )
-        if type(grid_displacement_the_other) == type(None):
-            grid_displacement_the_other = grid_displacement
-        gradient_of_strain_energy = np.zeros(len(self.links))
+        self.gradient_of_stiffness_matrix[:, :, :] = 0
         for n, link in enumerate(self.links):
             i, j = link[0], link[1]
             gradient_of_EAdL = (
@@ -523,14 +544,10 @@ class BeamGrid(Grid):
                  [                 0,                 0, -gradient_of_EIdL_3,  gradient_of_EIdL_3, -gradient_of_EIdL_2, -gradient_of_EIdL_2],
                  [                 0,                 0,  gradient_of_EIdL_2, -gradient_of_EIdL_2,   gradient_of_EI4dL,   gradient_of_EI2dL],
                  [                 0,                 0,  gradient_of_EIdL_2, -gradient_of_EIdL_2,   gradient_of_EI2dL,   gradient_of_EI4dL]]
-            )
-            indices = np.ix_([3*i, 3*i+1, 3*i+2, 3*j, 3*j+1, 3*j+2])
-            local_displacement = self.transformation_matrix[n] @ grid_displacement[indices]
-            local_displacement_the_other = self.transformation_matrix[n] @ grid_displacement_the_other[indices]
-            gradient_of_strain_energy[n] = -0.5 * (
-                local_displacement_the_other @ (
+            ) 
+            self.gradient_of_stiffness_matrix[n][self.get_indicies(i, j)] = (
+                self.transformation_matrix[n].T @ (
                     gradient_of_local_stiffness_matrix @ 
-                    local_displacement
+                    self.transformation_matrix[n]
                 )
-            )
-        return gradient_of_strain_energy   
+            ) 
