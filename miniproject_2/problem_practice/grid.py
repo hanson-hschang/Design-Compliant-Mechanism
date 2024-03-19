@@ -341,8 +341,7 @@ class TrussGrid(Grid):
                 [[  local_stiffness, -local_stiffness],
                  [ -local_stiffness,  local_stiffness]]
             )
-            indices = self.get_indicies(i, j)
-            self.stiffness_matrix[np.ix_(indices, indices)] += (
+            self.stiffness_matrix[self.get_indicies(i, j)] += (
                 self.transformation_matrix[n].T @ (
                     local_stiffness_matrix @ self.transformation_matrix[n]
                 )
