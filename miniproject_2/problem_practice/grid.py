@@ -451,10 +451,10 @@ class BeamGrid(Grid):
             EAdL = (
                 self.youngs_modulus[n] * cross_sectional_area[n] / self.length_of_links[n]
             )
-            EIdL_2 = (
+            EIdL_2 = 6 * (
                 self.youngs_modulus[n] * second_moment_of_cross_sectional_area[n] / (self.length_of_links[n]**2)
             )
-            EIdL_3 = (
+            EIdL_3 = 12 * (
                 self.youngs_modulus[n] * second_moment_of_cross_sectional_area[n] / (self.length_of_links[n]**3)
             )
             EI2dL = (
@@ -504,10 +504,10 @@ class BeamGrid(Grid):
             gradient_of_EAdL = (
                 self.youngs_modulus[n] * gradient_of_cross_sectional_area[n] / self.length_of_links[n]
             )
-            gradient_of_EIdL_2 = (
+            gradient_of_EIdL_2 = 6 * (
                 self.youngs_modulus[n] * gradient_of_second_moment_of_cross_sectional_area[n] / (self.length_of_links[n]**2)
             )
-            gradient_of_EIdL_3 = (
+            gradient_of_EIdL_3 = 12 * (
                 self.youngs_modulus[n] * gradient_of_second_moment_of_cross_sectional_area[n] / (self.length_of_links[n]**3)
             )
             gradient_of_EI2dL = (
