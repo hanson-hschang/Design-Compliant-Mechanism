@@ -46,13 +46,11 @@ def plot_deformation(
     fig, ax = plt.subplots()
     ax = grid.plot(
         ax,
-        in_plane_thickness=thickness, 
+        grid_displacement=grid_displacement,
         color='grey',
-    )
-    ax.plot(
-        [],[], 
-        color='grey',
-        label='optimized',
+        linestyle='dashdot',
+        alpha=0.2,
+        linewidth=1,
     )
     ax = grid.plot(
         ax,

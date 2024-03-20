@@ -257,7 +257,8 @@ class Grid(ABC):
     ):
         grid_displacement = np.zeros(self.degree_of_freedom*len(self.nodes)) if type(grid_displacement) == type(None) else grid_displacement
         in_plane_thickness = self.check_in_plane_thickness_value(in_plane_thickness)
-        in_plane_thickness_max = max(in_plane_thickness) / kwargs.pop('linewidth', 3)
+        in_plane_thickness_max = max(in_plane_thickness) / kwargs.pop('max_linewidth', 3)
+        linewidth = kwargs.pop('linewidth', None)
 
         for link, thickness in zip(self.links, in_plane_thickness):
             i, j = link[0], link[1]
@@ -266,7 +267,7 @@ class Grid(ABC):
                  self.nodes[j][0]+grid_displacement[self.degree_of_freedom*j]],
                 [self.nodes[i][1]+grid_displacement[self.degree_of_freedom*i+1], 
                  self.nodes[j][1]+grid_displacement[self.degree_of_freedom*j+1]],
-                linewidth=thickness/in_plane_thickness_max,
+                linewidth=thickness/in_plane_thickness_max if type(linewidth) == type(None) else linewidth,
                 **kwargs
             )
         return ax
