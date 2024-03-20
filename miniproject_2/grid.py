@@ -248,7 +248,7 @@ class Grid(ABC):
                     [index, condition, value]
                 )
     
-    def plot(
+    def plot_links(
         self, 
         ax, 
         grid_displacement: np.ndarray | None = None, 
@@ -269,6 +269,35 @@ class Grid(ABC):
                  self.nodes[j][1]+grid_displacement[self.degree_of_freedom*j+1]],
                 linewidth=thickness/in_plane_thickness_max if type(linewidth) == type(None) else linewidth,
                 **kwargs
+            )
+        return ax
+    
+    def plot_nodes(
+        self,
+        ax,
+        grid_displacement: np.ndarray | None = None,
+        **kwargs,
+    ):
+        grid_displacement = np.zeros(self.degree_of_freedom*len(self.nodes)) if type(grid_displacement) == type(None) else grid_displacement
+        for index, node in self.nodes.items():
+            position_x = [node[0], node[0]+grid_displacement[self.degree_of_freedom*index]]
+            position_y = [node[1], node[1]+grid_displacement[self.degree_of_freedom*index+1]]
+            ax.plot(
+                position_x,
+                position_y,
+                color='grey',
+                alpha=0.2,
+            )
+            ax.scatter(
+                position_x[0], 
+                position_y[0],
+                color='grey',
+                alpha=0.4,
+            )
+            ax.scatter(
+                position_x[1], 
+                position_y[1],
+                color='grey',
             )
         return ax
 

@@ -146,7 +146,7 @@ class TopologyOptimization:
 
             if plot_flag and i in plot_indicies:
                 color = next(colors)
-                ax = self.fem.grid.plot(
+                ax = self.fem.grid.plot_links(
                     ax,
                     in_plane_thickness=thickness, 
                     color=color,
@@ -159,7 +159,7 @@ class TopologyOptimization:
                 
         if plot_flag:
             color = next(colors)
-            ax = self.fem.grid.plot(
+            ax = self.fem.grid.plot_links(
                 ax,
                 in_plane_thickness=thickness, 
                 color=color,
@@ -236,7 +236,7 @@ class TopologyOptimization:
 
             if plot_flag and i in plot_indicies:
                 color = next(colors)
-                ax = self.fem.grid.plot(
+                ax = self.fem.grid.plot_links(
                     ax,
                     in_plane_thickness=thickness, 
                     color=color,
@@ -249,7 +249,7 @@ class TopologyOptimization:
                 
         if plot_flag:
             color = next(colors)
-            ax = self.fem.grid.plot(
+            ax = self.fem.grid.plot_links(
                 ax,
                 in_plane_thickness=thickness, 
                 color=color,
