@@ -60,7 +60,7 @@ def main():
     grid.add_conditions(
         external_loads,
         conditions='direction_y',
-        value=-100,
+        value=10,
         node_range=NodeRange(
             condition='point',
             x_value=76,
@@ -100,22 +100,6 @@ def main():
         ),
         number_of_maximum_iterations=100,
     )
-
-    # for index, boundary_constraint in model.fem.sorted_boundary_constraints.items():
-    #     print(index, model.fem.grid.nodes[index], boundary_constraint.keys())
-    # print(external_loads)
-    # index = output_displacement.node_index
-    # print(index, model.fem.grid.nodes[index])
-    # print(len(grid.nodes))
-    
-    # grid_displacement = model.fem.deform()
-    # plot_deformation(
-    #     grid, 
-    #     thickness=model.fem.grid.in_plane_thickness,
-    #     grid_displacement=grid_displacement
-    # )
-    # plt.show()
-    # quit()
 
     # Compute optimization and deformation 
     thickness = model.optimize_geometric_advantage(plot_flag=True)
