@@ -1,6 +1,6 @@
-# Truss Topology Optimization
+# Topology Optimization
 
-This repository contains Python code for performing topology optimization on a truss structure using the finite element method (FEM). The optimization aims to find the optimal distribution of material within a specified volume constraint, minimizing the strain energy of the structure.
+This repository contains Python code for performing topology optimization on a truss or beam structure using the finite element method (FEM). The optimization aims to find the optimal distribution of material within a specified volume constraint, minimizing the strain energy of the structure or the geometric advantage.
 
 ## Files
 
