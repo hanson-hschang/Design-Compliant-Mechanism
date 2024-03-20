@@ -44,14 +44,6 @@ def plot_deformation(
     grid_displacement: np.ndarray,
 ):
     fig, ax = plt.subplots()
-    # ax = grid.plot_links(
-    #     ax,
-    #     grid_displacement=grid_displacement,
-    #     color='grey',
-    #     linestyle='dashdot',
-    #     alpha=0.2,
-    #     linewidth=1,
-    # )
     ax = grid.plot_nodes(
         ax,
         grid_displacement=grid_displacement,
