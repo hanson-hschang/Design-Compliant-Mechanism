@@ -4,29 +4,29 @@ This repository contains Python code for performing topology optimization on a t
 
 ## Files
 
-1. `finite_element_model.py`: This file defines the `FEM` abstract base class and the `TrussFEM` class, which implements the finite element method for truss structures. The `TrussFEM` class computes the stiffness matrix, incorporates boundary constraints, and calculates the grid displacement.
+1. `finite_element_model.py`: This file defines the `FEM` class, which implements the finite element method for both the truss and beam structures. The `FEM` class computes the stiffness matrix, incorporates boundary constraints, and calculates the grid displacement.
 
 2. `design_optimization.py`: This file contains the `VolumeConstraint` class, which enforces the volume constraint during the optimization process, and the `TopologyOptimization` class, which performs the topology optimization by iteratively updating the thickness distribution based on the gradient of the strain energy.
 
-3. `grid.py`: This file defines the `Grid` class, which represents the truss structure. It creates nodes, links, and computes various properties such as length, angle, and Young's modulus for each link. It also provides a method to compute the gradient of the strain energy.
+3. `grid.py`: This file defines the `Grid` base abstract class with the `TrussGrid` and `BeamGrid`, which represents the truss and beam structures, respectively. This classes create nodes, links, and computes various properties such as length, angle, and Young's modulus for each link. It also provides a method to compute the strain energy and the gradient of it.
 
-4. `truss_optimization.py`: This file contains the main function that sets up the initial truss structure, boundary conditions, external loads, and runs the topology optimization. It also includes helper functions for plotting the optimized and deformed structures.
+4. `plot_tools.py`: This file contains helper functions for plotting the optimized and deformed structures.
 
 ## Usage
 
 1. Ensure that you have Python and the required libraries (NumPy and Matplotlib) installed.
 
-2. Run the `truss_optimization.py` script:
+2. Run the `optimization_*.py` script, for example:
 
 ```
-python truss_optimization.py
+python optimization_truss.py
 ```
 
 This will execute the topology optimization process and display the optimized and deformed structures using Matplotlib plots.
 
 ## Customization
 
-You can customize the truss structure, boundary conditions, external loads, and optimization parameters by modifying the values in the `main` function of `truss_optimization.py`. The comments in the code provide guidance on how to modify these parameters.
+You can customize the truss structure, boundary conditions, external loads, and optimization parameters by modifying the values in the `main` function of `optimization_truss.py`. The comments in the code provide guidance on how to modify these parameters.
 
 ## Contributing
 
