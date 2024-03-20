@@ -121,7 +121,7 @@ class FEM:
         else:
             self.add_output_displacement_stiffness_matrix = lambda stiffness_matrix: stiffness_matrix
 
-    def compute_stiffness_matrix(self, in_plane_thickness=None):
+    def compute_stiffness_matrix(self, in_plane_thickness=None, optimization=False):
 
         self.stiffness_matrix = self.grid.compute_stiffness_matrix(in_plane_thickness)
 
@@ -136,9 +136,10 @@ class FEM:
             self.stiffness_matrix = np.delete(self.stiffness_matrix, removed_entries_list, axis=0)
             self.stiffness_matrix = np.delete(self.stiffness_matrix, removed_entries_list, axis=1)
 
-        self.stiffness_matrix[...] = self.add_output_displacement_stiffness_matrix(
-            self.stiffness_matrix
-        )
+        if optimization:
+            self.stiffness_matrix[...] = self.add_output_displacement_stiffness_matrix(
+                self.stiffness_matrix
+            )
 
     def incorporate_boundary_constraints(self, grid_displacement: np.ndarray):
         degree_of_freedom = self.grid.degree_of_freedom
@@ -175,8 +176,9 @@ class FEM:
     def deform(
         self, 
         in_plane_thickness: np.ndarray | None = None,
+        optimization=False,
     ):
-        self.compute_stiffness_matrix(in_plane_thickness)
+        self.compute_stiffness_matrix(in_plane_thickness, optimization)
         self.compute_grid_displacement()
         return self.grid_displacement
     
