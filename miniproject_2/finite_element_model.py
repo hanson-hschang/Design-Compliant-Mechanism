@@ -16,18 +16,19 @@ class OutputDisplacement:
         condition: str, 
         directional_spring_constant: float
     ):
+        self.grid = grid
         self.position = np.array(position)
         self.condition = condition
         self.spring_constant = np.abs(directional_spring_constant)
 
-        total_degree_of_freedom = grid.degree_of_freedom * len(grid.nodes)
+        total_degree_of_freedom = self.grid.degree_of_freedom * len(self.grid.nodes)
         self.stiffness_matrix = np.zeros(
             (total_degree_of_freedom, total_degree_of_freedom)
         )
         self.vectorized_external_loads = np.zeros(total_degree_of_freedom)
 
-        self.node_index = NodeRange.find_nearest_node(grid.nodes, self.position)
-        self.dof_index = grid.degree_of_freedom * self.node_index + grid.DIRECTION_DICT[self.condition]
+        self.node_index = NodeRange.find_nearest_node(self.grid.nodes, self.position)
+        self.dof_index = self.grid.degree_of_freedom * self.node_index + self.grid.DIRECTION_DICT[self.condition]
         self.stiffness_matrix[self.dof_index, self.dof_index] = self.spring_constant
         self.vectorized_external_loads[self.dof_index] = directional_spring_constant / self.spring_constant
     
@@ -35,7 +36,12 @@ class OutputDisplacement:
         self,
         removed_entries_list: list,
     ):
-        # TODO: add warning if the output_displacement is in the boundary constraints
+        for i in removed_entries_list:
+            if self.vectorized_external_loads[i] != 0:
+                print("external force acting on boundary constraint:")
+                print("node", i, "with position", self.grid.nodes[i])
+                print("load value:", self.vectorized_external_loads[i])
+                quit()
         self.vectorized_external_loads = np.delete(
             self.vectorized_external_loads,
             removed_entries_list
