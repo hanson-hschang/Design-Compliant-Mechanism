@@ -81,7 +81,7 @@ def main():
                 max=1e5, min=0, tol=1e-4
             )
         ),
-        number_of_maximum_iterations=100,
+        number_of_maximum_iterations=1000,
     )
     
     grid_displacement = model.fem.deform()

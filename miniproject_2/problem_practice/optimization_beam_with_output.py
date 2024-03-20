@@ -49,7 +49,7 @@ def main():
             y_value=0
         ),
         conditions='direction_y',
-        value=100,
+        value=10,
     )
 
     output_displacement = OutputDisplacement(
@@ -82,17 +82,8 @@ def main():
                 max=1e5, min=0, tol=1e-4
             )
         ),
-        number_of_maximum_iterations=1000,
+        number_of_maximum_iterations=100,
     )
-    
-    grid_displacement = model.fem.deform()
-
-    # Create plots
-    # plot_deformation(
-    #     grid, 
-    #     thickness=None,
-    #     grid_displacement=grid_displacement
-    # )
 
     # Compute optimization and deformation 
     thickness = model.optimize_geometric_advantage(plot_flag=True)

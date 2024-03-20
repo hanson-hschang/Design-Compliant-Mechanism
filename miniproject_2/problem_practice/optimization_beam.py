@@ -46,7 +46,6 @@ def main():
             grid, 
             boundary_constraints, 
             external_loads,
-            # output_displacement,
         ),
         volume_constraint=VolumeConstraint(
             total_max_volume=VolumeConstraint.compute_total_volume(
@@ -63,7 +62,7 @@ def main():
                 max=1e5, min=0, tol=1e-4
             )
         ),
-        number_of_maximum_iterations=20,
+        number_of_maximum_iterations=100,
     )
 
     # Compute optimization and deformation 
