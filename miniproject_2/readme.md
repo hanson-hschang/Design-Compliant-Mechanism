@@ -6,9 +6,9 @@ This repository contains Python code for performing topology optimization on a t
 
 1. `finite_element_model.py`: This file defines the `FEM` class, which implements the finite element method for both the truss and beam structures. The `FEM` class computes the stiffness matrix, incorporates boundary constraints, and calculates the grid displacement.
 
-2. `design_optimization.py`: This file contains the `VolumeConstraint` class, which enforces the volume constraint during the optimization process, and the `TopologyOptimization` class, which performs the topology optimization by iteratively updating the thickness distribution based on the gradient of the strain energy.
+2. `design_optimization.py`: This file contains the `VolumeConstraint` class, which enforces the volume constraint during the optimization process, and the `TopologyOptimization` class, which performs the topology optimization by iteratively updating the thickness distribution based on the gradient of the objective function.
 
-3. `grid.py`: This file defines the `Grid` base abstract class with the `TrussGrid` and `BeamGrid`, which represents the truss and beam structures, respectively. This classes create nodes, links, and computes various properties such as length, angle, and Young's modulus for each link. It also provides a method to compute the strain energy and the gradient of it.
+3. `grid.py`: This file defines the `Grid` base abstract class with the `TrussGrid` and `BeamGrid`, which represent the truss and beam structures, respectively. This classes create nodes, links, and computes various properties such as length, angle, and Young's modulus for each link. It also provides a method to compute the strain energy and the gradient of it.
 
 4. `plot_tools.py`: This file contains helper functions for plotting the optimized and deformed structures.
 
