@@ -279,25 +279,36 @@ class Grid(ABC):
         **kwargs,
     ):
         grid_displacement = np.zeros(self.degree_of_freedom*len(self.nodes)) if type(grid_displacement) == type(None) else grid_displacement
+        deformed_color = kwargs.pop('color', 'black')
+        deformed_alpha = kwargs.pop('alpha', 0.5)
+        pre_deformed_alpha = deformed_alpha / 3
+        edgecolors = kwargs.pop('edgecolors', 'none')
+
         for index, node in self.nodes.items():
             position_x = [node[0], node[0]+grid_displacement[self.degree_of_freedom*index]]
             position_y = [node[1], node[1]+grid_displacement[self.degree_of_freedom*index+1]]
             ax.plot(
                 position_x,
                 position_y,
-                color='grey',
-                alpha=0.2,
+                color=deformed_color,
+                alpha=deformed_alpha,
+                **kwargs,
             )
             ax.scatter(
                 position_x[0], 
                 position_y[0],
-                color='grey',
-                alpha=0.4,
+                edgecolors=edgecolors,
+                color=deformed_color,
+                alpha=pre_deformed_alpha,
+                **kwargs,
             )
             ax.scatter(
                 position_x[1], 
                 position_y[1],
-                color='grey',
+                edgecolors=edgecolors,
+                color=deformed_color,
+                alpha=deformed_alpha,
+                **kwargs,
             )
         return ax
 
